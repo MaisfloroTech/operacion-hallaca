@@ -47,7 +47,7 @@ window.HALLACA_DATA = {
     'Bolivia': { name: 'Tía Rosa', lines: [{ t: '¡Ya pues, hermano! ¿Ya está la picana?' }, { t: 'Después de la misa de gallo, picana calientita.' }] },
     'Paraguay': { name: 'Tío Kike', lines: [{ t: '¡Che ra\'a! ¿Y el clericó pa\' brindar?' }, { t: '¡Ndeee, qué rico! Falta la sopa paraguaya.' }] },
     'Guatemala': { name: 'Tía Chepita', lines: [{ t: '¡Qué chilero, vos! ¿Y los tamales colorados?' }, { t: 'A las doce, cohetes y ponche de frutas.' }] },
-    'Honduras': { name: 'Tío Chema', lines: [{ t: '¡Qué macizo, maje! ¿Y las nacatamales?' }, { t: '¡Púchica! Ya mero son las doce.' }] },
+    'Honduras': { name: 'Tío Chema', lines: [{ t: '¡Qué macizo, maje! ¿Y los nacatamales?' }, { t: '¡Púchica! Ya mero son las doce.' }] },
     'El Salvador': { name: 'Tía Neta', lines: [{ t: '¡Qué chivo, cipote! ¿Y el pan con pavo?' }, { t: 'A las doce, cohetes y abrazos, ¿va?' }] },
     'Nicaragua': { name: 'Tío Chele', lines: [{ t: '¡Qué tuanis, chavalo! ¿Ya fuiste a la Gritería?' }, { t: '¡Dale pues! Pasame el nacatamal.' }] },
     'Cuba': { name: 'Tío Pepito', lines: [{ t: '¡Asere, qué bolá! ¿Y el lechón asado?' }, { t: 'Esto está más rico que el congrí de mi abuela.' }] },
