@@ -116,17 +116,18 @@ label.inline{max-width:280px; margin:14px auto 0; text-align:left}
 .cabinet.playing .screen{min-height:0}
 .stage{position:relative; margin:0 auto; line-height:0}
 .stage #game{margin:0}
-/* Cocina: tarjeta de opciones centrada sobre el juego */
+/* Cocina: tarjeta de opciones centrada sobre TODA la pantalla del juego */
+.cabinet.in-kitchen .stage, .cabinet.in-kitchen .game-holder{position:static}
 .kitchen{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; padding:4%;
   background:#050816c4; line-height:1.2; z-index:2}
 .k-card{width:min(560px, 100%); max-height:100%; overflow:auto; background:#151c52; border:3px solid var(--ink);
   box-shadow:0 0 0 3px var(--yellow), 6px 6px 0 3px var(--ink); padding:clamp(10px, 2.4vw, 18px); text-align:center}
 .k-head{margin:0; font-family:'Press Start 2P', monospace; font-size:clamp(8px, 1.4vw, 11px); color:var(--yellow); letter-spacing:.04em}
-.k-step{margin:6px 0 2px; font-size:clamp(20px, min(4.2vw, 6vh), 32px); color:var(--cream)}
+.k-step{margin:6px 0 2px; font-size:clamp(18px, min(4.2vw, 6vh), 32px); color:var(--cream)}
 .k-hint{margin:0 0 8px; font-size:clamp(16px, min(2.8vw, 4vh), 22px); color:#b8a8ee}
 .k-opts{display:grid; gap:8px}
 .k-opt{display:flex; align-items:center; gap:10px; width:100%; text-align:left; cursor:pointer; border:0;
-  font-family:'VT323', monospace; font-size:clamp(18px, min(3.4vw, 5vh), 27px); line-height:1.1; color:var(--ink);
+  font-family:'VT323', monospace; font-size:clamp(17px, min(3.4vw, 5vh), 27px); line-height:1.1; color:var(--ink);
   background:var(--cream); padding:clamp(6px, 1.4vh, 12px) 12px; min-height:46px;
   box-shadow: inset -4px -4px 0 #cfc6ad, 4px 4px 0 var(--ink); transition:transform .05s}
 .k-opt:hover{background:#fff6d6}
@@ -140,6 +141,7 @@ label.inline{max-width:280px; margin:14px auto 0; text-align:left}
 .k-feedback{min-height:1.2em; margin:8px 0 0; font-size:clamp(16px, min(2.8vw, 4vh), 22px); color:var(--yellow)}
 .k-feedback.bad{color:#ff8a96}
 .k-feedback.good{color:#9be37a}
+@media (max-height:460px){ .k-hint{display:none} .k-opt{min-height:38px; padding:4px 10px} .k-opts{gap:6px} .kitchen{padding:2%} .k-step{margin:2px 0 6px} }
 .cabinet.playing .pad{display:block}
 .cabinet:not(.show-pad) .pad{display:none !important}
 #juego{scroll-margin-top:18px}

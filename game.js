@@ -718,6 +718,7 @@
     Music.setMode('kitchen');
     $('#kitchen').classList.remove('hidden');
     setPad(false); drag = null; clearDir();
+    cabinet.classList.add('in-kitchen');
     showStep();
   }
 
@@ -815,6 +816,7 @@
   function finishGame() {
     game.state = 'kitchenDone';
     $('#kitchen').classList.add('hidden');
+    cabinet.classList.remove('in-kitchen'); fit();
     Music.sfx('win');
     const best = Math.max(store.get('best', 0), game.score);
     store.set('best', best);
@@ -900,6 +902,7 @@
   function show(name) {
     PANELS.forEach((p) => $('#panel-' + p).classList.toggle('hidden', p !== name));
     cabinet.classList.toggle('playing', name === 'game');
+    if (name !== 'game') cabinet.classList.remove('in-kitchen');
     setPad(name === 'game');
     fit();
   }
@@ -907,13 +910,13 @@
 
   // Ajusta el canvas al espacio REAL visible (visualViewport evita el bug de 100vh en iOS)
   function fit() {
-    if (!cabinet.classList.contains('playing')) { canvas.style.width = ''; $('#stage').style.width = ''; return; }
+    if (!cabinet.classList.contains('playing')) { canvas.style.width = ''; $('#stage').style.width = ''; $('#screen').style.minHeight = ''; return; }
     const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
     const holder = $('#panel-game');
     const pad = $('#pad'); const ps = getComputedStyle(pad);
     const padH = ps.display !== 'none' && ps.position !== 'absolute' ? pad.offsetHeight : 0;
     const kitH = 0; // la tarjeta de cocina va encima del canvas
-    canvas.style.width = '10px';
+    canvas.style.width = '10px'; $('#screen').style.minHeight = '';
     const chrome = cabinet.offsetHeight - holder.offsetHeight - padH;
     const credit = $('#credit'); const creditH = credit ? credit.offsetHeight + 10 : 0;
     const barH = audioBar && !audioBar.classList.contains('hidden') ? audioBar.offsetHeight : 0;
@@ -921,6 +924,8 @@
     const w = Math.max(200, Math.min(holder.clientWidth, (avail * 4) / 3, 960));
     canvas.style.width = Math.floor(w) + 'px';
     $('#stage').style.width = Math.floor(w) + 'px';
+    // en la cocina, la pantalla del juego usa todo el alto disponible para que la tarjeta respire
+    $('#screen').style.minHeight = cabinet.classList.contains('in-kitchen') ? Math.floor(avail) + 'px' : '';
     const ppl = w / W;
     FS_BUMP = ppl < 1.55 ? 2 : ppl < 2.2 ? 1 : 0;
   }

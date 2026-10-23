@@ -12,7 +12,24 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+<link rel="canonical" href="https://operacion-hallaca.maisfloro.com/">
+<meta property="og:url" content="https://operacion-hallaca.maisfloro.com/">
+<!-- CDN:START (generado por tools/pin-cdn.py, commit b7fe197) -->
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/MaisfloroTech/operacion-hallaca@b7fe1974fd66ffeb0cd6d0b90afede46a59c8c73/style.css" integrity="sha384-Xwljk3YZo/yIeLQUc2PIJiVP8PoOlFuz20gOE57VebeNydLBuJVTUNd8WSqVgmyY" crossorigin="anonymous"
+  onerror="this.onerror=null;this.removeAttribute('integrity');this.removeAttribute('crossorigin');this.href='style.css'">
+<script>
+window.HALLACA_ASSETS = { version: 'b7fe197', bases: [
+  'https://cdn.jsdelivr.net/gh/MaisfloroTech/operacion-hallaca@b7fe1974fd66ffeb0cd6d0b90afede46a59c8c73/',
+  'https://fastly.jsdelivr.net/gh/MaisfloroTech/operacion-hallaca@b7fe1974fd66ffeb0cd6d0b90afede46a59c8c73/',
+  ''
+], files: [
+    ['music.js', 'sha384-9kqdtTT8rIjDi+636DPn/M0M9kW94mSBWZ8jT1eMWDRbtpI3yjZPNrXFTsIgDjqZ'],
+    ['family.js', 'sha384-NJ7OiHhM4lL4AVy6tPssJ+i+yvHXFkCBk+d7h9nvmfbkiZjCJXY1Rr0IV89Vid9j'],
+    ['game.js', 'sha384-/R6wwZ6F58dpZwlNElToBcUrFI/3dJj8Eku+4K7NqssIpR7OA1j2mLJsDJj8gene']
+] };
+</script>
+<!-- CDN:END -->
 </head>
 <body>
 <div class="lights" aria-hidden="true"></div>
@@ -206,8 +223,22 @@
 
 <a class="credit" id="credit" href="https://www.instagram.com/maisfloro.tech/" target="_blank" rel="noopener">Hecho con <span class="heart">❤️</span> por @maisfloro.tech</a>
 
-<script src="music.js"></script>
-<script src="family.js"></script>
-<script src="game.js"></script>
+<script>
+/* Carga los scripts en orden desde GitHub (jsDelivr). Si un CDN falla o el hash no coincide,
+   prueba el siguiente; el último recurso es la copia en este mismo servidor. */
+(function () {
+  var A = window.HALLACA_ASSETS || { bases: [''], files: [['music.js'], ['family.js'], ['game.js']] };
+  function load(i, b) {
+    if (i >= A.files.length) return;
+    var f = A.files[i], s = document.createElement('script');
+    s.src = A.bases[b] + f[0];
+    if (A.bases[b] && f[1]) { s.integrity = f[1]; s.crossOrigin = 'anonymous'; }
+    s.onload = function () { load(i + 1, b); };
+    s.onerror = function () { s.remove(); if (b + 1 < A.bases.length) load(i, b + 1); };
+    document.body.appendChild(s);
+  }
+  load(0, 0);
+})();
+</script>
 </body>
 </html>
