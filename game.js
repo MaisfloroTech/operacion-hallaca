@@ -192,9 +192,9 @@
 
   // ---------- Niveles ----------
   const LEVELS = [
-    { title: 'EL MERCADO', sub: 'Nivel 1', items: ['hoja', 'alinos', 'pimenton', 'onoto'], time: 85, tios: 2, kids: 2, braid: 0.75, theme: 'mercado' },
-    { title: 'LA CARNICERÍA', sub: 'Nivel 2', items: ['res', 'cochino', 'gallina'], time: 80, tios: 2, kids: 2, braid: 0.65, theme: 'carniceria' },
-    { title: 'EL ABASTO', sub: 'Nivel 3', items: ['harina', 'aceitunas', 'pasas', 'alcaparras', 'pabilo'], time: 100, tios: 3, kids: 3, braid: 0.55, theme: 'abasto' },
+    { title: 'EL MERCADO', sub: 'Nivel 1', items: ['hoja', 'alinos', 'pimenton', 'onoto'], time: 85, tios: 1, kids: 2, braid: 0.75, theme: 'mercado' },
+    { title: 'LA CARNICERÍA', sub: 'Nivel 2', items: ['res', 'cochino', 'gallina'], time: 80, tios: 1, kids: 2, braid: 0.65, theme: 'carniceria' },
+    { title: 'EL ABASTO', sub: 'Nivel 3', items: ['harina', 'aceitunas', 'pasas', 'alcaparras', 'pabilo'], time: 100, tios: 1, kids: 2, braid: 0.55, theme: 'abasto' },
   ];
   const DATA = window.HALLACA_DATA || { MAMI: ['¡Un abrazo!'], PAPI: ['¡Un abrazo!'], KIDS: ['¡Juguemos!'], KID_NAMES: ['Santi'], COUNTRY: {} };
 
@@ -452,7 +452,7 @@
       const [ax, ay] = anchor(c[0], c[1]);
       game.npcs.push({ kind, rel, x: ax, y: ay, speed, dx: 0, dy: 0, anim: 0, face: 1, cool: 3, goal: [c[0], c[1]], prev: null, mode: 'wander', modeT: 1 + rnd() * 2 });
     };
-    for (let k = 0; k < L.tios; k++) mk('tio', game.relatives[(i * 2 + k) % game.relatives.length], freeCell(4), 24);
+    for (let k = 0; k < (game.visitor ? L.tios : L.tios + 1); k++) mk('tio', game.relatives[(i * 2 + k) % game.relatives.length], freeCell(4), 24);
     if (game.visitor) mk('pais', game.visitor, freeCell(4), 22);
     for (let k = 0; k < L.kids; k++) mk('kid', makeKid(), freeCell(2), 60);
     mk('mami', MAMI_REL, freeCell(3), 24);
