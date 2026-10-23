@@ -210,7 +210,9 @@
   const ctx = canvas.getContext('2d');
   function resetCtx() { ctx.setTransform(S, 0, 0, S, 0, 0); ctx.imageSmoothingEnabled = false; }
   resetCtx();
-  const FONT = (px) => px + 'px "Press Start 2P", monospace';
+  let FS_BUMP = 0; // +1/+2 px lógicos cuando el canvas se ve pequeño (teléfonos)
+  const FONT = (px) => (px + FS_BUMP) + 'px "Press Start 2P", monospace';
+  const LH = (px) => px + FS_BUMP + 3;
 
   function text(str, x, y, opts) {
     opts = opts || {};
@@ -389,6 +391,7 @@
     game.msg = null; game.toast = null;
     game.state = 'intro'; game.introT = 0;
     Music.setMode('game');
+    if (typeof setPad === 'function') { setPad(true); fit(); }
   }
 
   function setDialog(name, line, dur, gift) {
@@ -500,9 +503,10 @@
     for (const tio of game.tios) ents.push({ y: tio.y + 6, draw: () => {
       shadow(tio.x, tio.y);
       drawSprite(tio.rel.frames[Math.floor(tio.anim * 6) % 2], tio.x, tio.y, tio.dx < 0);
-      ctx.font = FONT(5); const w = ctx.measureText(tio.rel.name).width;
-      ctx.fillStyle = '#120a1ecc'; ctx.fillRect(Math.round(tio.x + 8 - w / 2) - 2, Math.round(tio.y) - 8, w + 4, 7);
-      text(tio.rel.name, Math.round(tio.x + 8), Math.round(tio.y) - 7, { size: 5, align: 'center', color: '#ffcc00', shadow: false });
+      ctx.font = FONT(5); const w = ctx.measureText(tio.rel.name).width; const lh = LH(5) - 1;
+      const lx = Math.round(Math.max(w / 2 + 3, Math.min(W - w / 2 - 3, tio.x + 8)));
+      ctx.fillStyle = '#120a1ecc'; ctx.fillRect(Math.round(lx - w / 2) - 2, Math.round(tio.y) - lh - 1, w + 4, lh);
+      text(tio.rel.name, lx, Math.round(tio.y) - lh, { size: 5, align: 'center', color: '#ffcc00', shadow: false });
     } });
     const p = game.player;
     ents.push({ y: p.y + 6, draw: () => {
@@ -516,29 +520,41 @@
     ents.sort((a, b) => a.y - b.y).forEach((e) => e.draw());
 
     if (game.flash > 0) { ctx.fillStyle = '#ffffff55'; ctx.fillRect(0, TOP, W, H - TOP); }
+    if (drag && drag.moved) {
+      const r = canvas.getBoundingClientRect(), k = W / r.width;
+      const ox = (drag.x - r.left) * k, oy = (drag.y - r.top) * k;
+      let jx = (drag.cx - drag.x) * k, jy = (drag.cy - drag.y) * k; const d = Math.hypot(jx, jy) || 1;
+      if (d > 12) { jx = jx / d * 12; jy = jy / d * 12; }
+      ctx.fillStyle = '#ffffff22'; ctx.beginPath(); ctx.arc(ox, oy, 14, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#ffcc00aa'; ctx.beginPath(); ctx.arc(ox + jx, oy + jy, 6, 0, Math.PI * 2); ctx.fill();
+    }
 
     // HUD
     ctx.fillStyle = '#120a1e'; ctx.fillRect(0, 0, W, TOP);
     ctx.fillStyle = '#ffcc00'; ctx.fillRect(0, TOP - 2, W / 3, 2); ctx.fillStyle = '#2f6bff'; ctx.fillRect(W / 3, TOP - 2, W / 3, 2); ctx.fillStyle = '#e8283a'; ctx.fillRect((2 * W) / 3, TOP - 2, W / 3 + 1, 2);
     text(L.title, 4, 4, { size: 6, color: '#ffcc00' });
-    game.items.forEach((it, k) => { ctx.globalAlpha = it.got ? 1 : 0.28; ctx.drawImage(ICONS[it.id].img, 96 + k * 11, 3); ctx.globalAlpha = 1; });
+    ctx.font = FONT(6);
+    const ix = Math.round(4 + ctx.measureText(L.title).width + 8);
+    game.items.forEach((it, k) => { ctx.globalAlpha = it.got ? 1 : 0.28; ctx.drawImage(ICONS[it.id].img, ix + k * 11, 3); ctx.globalAlpha = 1; });
     const tl = Math.ceil(game.timeLeft);
-    text(String(game.score).padStart(5, '0'), 186, 4, { size: 6 });
-    text(tl + 's', W - 4, 4, { size: 6, align: 'right', color: tl <= 10 && Math.floor(game.t * 4) % 2 ? '#e8283a' : '#f4efe1' });
+    const tStr = tl + 's';
+    text(tStr, W - 4, 4, { size: 6, align: 'right', color: tl <= 10 && Math.floor(game.t * 4) % 2 ? '#e8283a' : '#f4efe1' });
+    ctx.font = FONT(6);
+    text(String(game.score).padStart(5, '0'), W - 4 - ctx.measureText(tStr).width - 8, 4, { size: 6, align: 'right' });
 
     // diálogo de tío
     if (game.msg) {
       const lines = wrap(game.msg.line, W - 28, 6);
-      const h = 16 + lines.length * 9;
+      const h = 8 + LH(6) + lines.length * LH(6);
       box(6, H - h - 6, W - 12, h, game.msg.gift ? '#13402a' : '#151c52');
       text(game.msg.name.toUpperCase() + ':', 12, H - h, { size: 6, color: '#ffcc00' });
-      lines.forEach((l, i) => text(l, 12, H - h + 10 + i * 9, { size: 6 }));
+      lines.forEach((l, i) => text(l, 12, H - h + LH(6) + 1 + i * LH(6), { size: 6 }));
     } else if (game.toast) {
       const lines = wrap(game.toast.line, W - 28, 5);
-      const h = 15 + lines.length * 8;
+      const h = 8 + LH(6) + lines.length * LH(5);
       box(6, H - h - 6, W - 12, h, '#0f2a26', '#120a1e');
       text('¡' + game.toast.title + '!', 12, H - h, { size: 6, color: '#9be37a' });
-      lines.forEach((l, i) => text(l, 12, H - h + 10 + i * 8, { size: 5, color: '#f4efe1' }));
+      lines.forEach((l, i) => text(l, 12, H - h + LH(6) + 1 + i * LH(5), { size: 5, color: '#f4efe1' }));
     }
 
     if (game.state === 'intro') {
@@ -547,7 +563,7 @@
       text(L.title, W / 2, 46, { size: 14, align: 'center', color: '#ffcc00', shadowColor: '#e8283a' });
       text('CONSIGUE:', W / 2, 78, { size: 6, align: 'center' });
       L.items.forEach((id, k) => {
-        const y = 92 + k * 12;
+        const y = 92 + k * Math.max(12, LH(6) + 2);
         ctx.drawImage(ICONS[id].img, W / 2 - 60, y - 2);
         text(ING[id].name, W / 2 - 46, y, { size: 6 });
       });
@@ -580,6 +596,7 @@
     game.supervisor = game.relatives[0];
     Music.setMode('kitchen');
     $('#kitchen').classList.remove('hidden');
+    setPad(false); drag = null; clearDir();
     showStep();
   }
 
@@ -593,6 +610,7 @@
       b.addEventListener('click', () => answer(b));
       opts.appendChild(b);
     });
+    fit();
   }
 
   function answer(btn) {
@@ -652,11 +670,11 @@
     text(String(game.score).padStart(5, '0'), 6, 26, { size: 6, color: '#2a1d3a', shadow: false });
 
     if (game.kmsg && game.state !== 'kitchenDone') {
-      const lines = wrap(game.kmsg.line, 140, 5);
-      const h = 14 + lines.length * 8;
-      box(58, 34, 150, h, game.kmsg.good ? '#13402a' : '#5a1020');
-      text(game.kmsg.name + ':', 63, 38, { size: 5, color: '#ffcc00' });
-      lines.forEach((l, i) => text(l, 63, 47 + i * 8, { size: 5 }));
+      const lines = wrap(game.kmsg.line, 150, 5);
+      const h = 8 + LH(5) + lines.length * LH(5);
+      box(48, 30, 162, h, game.kmsg.good ? '#13402a' : '#5a1020');
+      text(game.kmsg.name + ':', 53, 34, { size: 5, color: '#ffcc00' });
+      lines.forEach((l, i) => text(l, 53, 34 + LH(5) + i * LH(5), { size: 5 }));
     }
     if (game.state === 'kitchenDone') {
       text('¡HALLACAS LISTAS!', W / 2, 40, { size: 10, align: 'center', color: '#e8283a', shadowColor: '#ffcc00' });
@@ -705,11 +723,32 @@
   window.addEventListener('keyup', (e) => { const k = KEYMAP[e.key]; if (k) keys[k] = false; });
   window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
   document.addEventListener('visibilitychange', () => { if (document.hidden && game.state === 'play') game.paused = true; });
-  canvas.addEventListener('pointerdown', () => {
-    if (game.state === 'gameover') retry();
-    else if (game.state === 'intro') game.state = 'play';
-    else if (game.paused) game.paused = false;
+  // Control táctil por arrastre: donde pones el dedo queda el centro del joystick
+  let drag = null;
+  function clearDir() { keys.left = keys.right = keys.up = keys.down = false; }
+  canvas.addEventListener('pointerdown', (e) => {
+    if (game.state === 'gameover') { retry(); return; }
+    if (game.state === 'intro') { game.state = 'play'; return; }
+    if (game.paused) { game.paused = false; return; }
+    if (game.state !== 'play') return;
+    e.preventDefault();
+    drag = { id: e.pointerId, x: e.clientX, y: e.clientY, cx: e.clientX, cy: e.clientY, moved: false };
+    try { canvas.setPointerCapture(e.pointerId); } catch (err) { }
   });
+  canvas.addEventListener('pointermove', (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    drag.cx = e.clientX; drag.cy = e.clientY;
+    const dx = drag.cx - drag.x, dy = drag.cy - drag.y, dead = 10;
+    if (Math.hypot(dx, dy) < dead) { clearDir(); return; }
+    drag.moved = true;
+    const ax = Math.abs(dx), ay = Math.abs(dy);
+    keys.left = dx < 0 && ax > ay * 0.45; keys.right = dx > 0 && ax > ay * 0.45;
+    keys.up = dy < 0 && ay > ax * 0.45; keys.down = dy > 0 && ay > ax * 0.45;
+  });
+  const endDrag = (e) => { if (drag && e.pointerId === drag.id) { drag = null; clearDir(); } };
+  canvas.addEventListener('pointerup', endDrag);
+  canvas.addEventListener('pointercancel', endDrag);
+  canvas.addEventListener('contextmenu', (e) => e.preventDefault());
   document.querySelectorAll('.dpad button').forEach((b) => {
     const k = b.dataset.k;
     const on = (e) => { e.preventDefault(); keys[k] = true; b.classList.add('on'); };
@@ -726,10 +765,43 @@
 
   // ---------- Pantallas DOM ----------
   const PANELS = ['register', 'setup', 'game', 'end'];
+  const cabinet = $('.cabinet');
   function show(name) {
     PANELS.forEach((p) => $('#panel-' + p).classList.toggle('hidden', p !== name));
-    $('#pad').style.display = name === 'game' ? '' : 'none';
+    cabinet.classList.toggle('playing', name === 'game');
+    setPad(name === 'game');
+    fit();
   }
+  function setPad(on) { cabinet.classList.toggle('show-pad', on); }
+
+  // Ajusta el canvas al espacio REAL visible (visualViewport evita el bug de 100vh en iOS)
+  function fit() {
+    if (!cabinet.classList.contains('playing')) { canvas.style.width = ''; return; }
+    const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    const holder = $('#panel-game');
+    const pad = $('#pad'); const ps = getComputedStyle(pad);
+    const padH = ps.display !== 'none' && ps.position !== 'absolute' ? pad.offsetHeight : 0;
+    const kit = $('#kitchen'); const kitH = kit.classList.contains('hidden') ? 0 : kit.offsetHeight;
+    canvas.style.width = '10px';
+    const chrome = cabinet.offsetHeight - holder.offsetHeight - padH;
+    const avail = vh - 18 - chrome - padH - kitH - 4;
+    const w = Math.max(200, Math.min(holder.clientWidth, (avail * 4) / 3, 960));
+    canvas.style.width = Math.floor(w) + 'px';
+    const ppl = w / W;
+    FS_BUMP = ppl < 1.55 ? 2 : ppl < 2.2 ? 1 : 0;
+  }
+  function scrollToCabinet() {
+    const y = cabinet.getBoundingClientRect().top + window.scrollY - 18;
+    window.scrollTo({ top: y, behavior: 'instant' });
+  }
+  let fitT = null;
+  function refit() {
+    clearTimeout(fitT);
+    fitT = setTimeout(() => { fit(); if (cabinet.classList.contains('playing')) scrollToCabinet(); }, 120);
+  }
+  window.addEventListener('resize', refit);
+  window.addEventListener('orientationchange', refit);
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', refit);
 
   function toggleMute() {
     const m = Music.toggleMute();
@@ -819,7 +891,7 @@
     Music.start('game'); Music.setMode('game');
     document.fonts && document.fonts.load('8px "Press Start 2P"');
     startLevel(0);
-    $('#juego').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    requestAnimationFrame(() => { fit(); scrollToCabinet(); });
   });
 
   $('#againBtn').addEventListener('click', () => goSetup());

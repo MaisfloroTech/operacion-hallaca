@@ -98,8 +98,14 @@ label.inline{max-width:280px; margin:14px auto 0; text-align:left}
 .tios input{font-size:20px; padding:6px 8px}
 
 .game-holder{position:relative; display:flex; flex-direction:column; align-items:center}
-#game{display:block; width:100%; max-width:832px; aspect-ratio: 4 / 3; image-rendering: pixelated; image-rendering: crisp-edges; background:#000}
-.kitchen{position:absolute; left:0; right:0; bottom:0; padding:12px; background:#050816ee; border-top:4px solid var(--ink)}
+#game{display:block; width:100%; max-width:960px; height:auto; aspect-ratio: 4 / 3; margin:0 auto; image-rendering: pixelated; image-rendering: crisp-edges; background:#000; touch-action:none; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none}
+.kitchen{width:100%; padding:12px; background:#050816; border-top:4px solid var(--ink)}
+.cabinet.playing .screen{min-height:0}
+.cabinet.playing .pad{display:block}
+.cabinet:not(.show-pad) .pad{display:none !important}
+#juego{scroll-margin-top:18px}
+button{touch-action:manipulation}
+.rotate-hint{display:none; text-align:center; color:#b8a8ee; font-size:17px; margin:8px 0 0}
 .k-step{margin:0 0 10px; text-align:center; color:var(--yellow); font-size:22px}
 .k-opts{display:grid; grid-template-columns: repeat(3, 1fr); gap:8px}
 .k-opts .btn{font-size:10px; line-height:1.5; padding:12px 8px; white-space:normal}
@@ -120,6 +126,24 @@ label.inline{max-width:280px; margin:14px auto 0; text-align:left}
 .pad-help{text-align:center; color:#b8a8ee; font-size:18px; margin:10px 0 0}
 @media (hover:hover) and (pointer:fine){ .pad{display:block} .dpad{display:none} }
 @media (hover:none), (pointer:coarse){ .pad{display:block} .pad-help{display:none} }
+@media (pointer:coarse) and (orientation:portrait){ .rotate-hint{display:block} }
+.dpad button{-webkit-touch-callout:none}
+
+/* Teléfono en horizontal: canvas a toda altura y D-pad flotando al lado */
+@media (pointer:coarse) and (orientation:landscape) and (max-height:560px){
+  .cabinet-wrap{padding:6px max(6px, env(safe-area-inset-right)) 6px max(6px, env(safe-area-inset-left))}
+  .cabinet{position:relative; padding:4px 6px 6px; box-shadow:0 0 0 3px #5b3fb0}
+  .cabinet-top{padding:0 2px 4px}
+  .cabinet-top .dot{width:8px; height:8px}
+  .cab-title{font-size:8px}
+  .cabinet.playing .pad{position:absolute; left:max(10px, env(safe-area-inset-left)); bottom:14px; padding:0; z-index:3; pointer-events:none}
+  .cabinet.playing .dpad{grid-template-columns:repeat(3, 54px); grid-template-rows:repeat(2, 50px); pointer-events:auto}
+  .cabinet.playing .dpad button{background:#15183fcc}
+  .k-opts{grid-template-columns:repeat(3, 1fr)}
+  .k-step{font-size:19px; margin-bottom:6px}
+  .kitchen{padding:8px}
+  .k-opts .btn{padding:8px 6px; font-size:9px}
+}
 
 /* Receta */
 .recipe,.privacy{max-width:1000px; margin:0 auto; padding:56px 16px}
@@ -145,11 +169,16 @@ label.inline{max-width:280px; margin:14px auto 0; text-align:left}
   .chars{grid-template-columns: repeat(2, 1fr)}
   .tios{grid-template-columns: repeat(2, 1fr)}
   .cards{grid-template-columns: 1fr}
-  .k-opts{grid-template-columns: 1fr}
-  .k-opts .btn{font-size:9px}
-  .kitchen{position:static}
-  .cabinet{padding:8px}
+  .k-opts{grid-template-columns: 1fr; gap:6px}
+  .k-opts .btn{font-size:9px; padding:10px 8px}
+  .k-step{font-size:20px}
+  .kitchen{padding:8px}
+  .cabinet-wrap{padding:28px 4px}
+  .cabinet{padding:6px; border-width:3px; box-shadow: 0 0 0 3px #5b3fb0, 4px 4px 0 3px var(--ink)}
+  .cabinet-top{padding:2px 2px 8px}
+  .screen{border-width:3px}
   .panel{padding:18px 12px 22px}
+  .dpad{grid-template-columns: repeat(3, 72px); grid-template-rows: repeat(2, 60px)}
 }
 @media (prefers-reduced-motion: reduce){
   *{animation:none !important; scroll-behavior:auto}
