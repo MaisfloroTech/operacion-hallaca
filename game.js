@@ -981,6 +981,16 @@
   // Registro
   const form = $('#regForm');
   const formStart = Date.now();
+  function deviceInfo() {
+    const ua = navigator.userAgent || '';
+    const coarse = window.matchMedia && matchMedia('(pointer:coarse)').matches;
+    const ipadOS = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+    const short = Math.min(screen.width, screen.height);
+    const tablet = /iPad|Tablet/i.test(ua) || ipadOS || (coarse && short >= 600 && !/Mobi/i.test(ua));
+    const mobile = !tablet && (/Mobi|Android|iPhone|iPod/i.test(ua) || coarse);
+    const os = /Android/i.test(ua) ? 'Android' : (/iPhone|iPad|iPod/i.test(ua) || ipadOS) ? 'iOS' : /Windows/i.test(ua) ? 'Windows' : /Mac/i.test(ua) ? 'macOS' : /CrOS/i.test(ua) ? 'ChromeOS' : /Linux/i.test(ua) ? 'Linux' : 'Otro';
+    return { device: tablet ? 'tablet' : mobile ? 'mobile' : 'desktop', os };
+  }
   async function postLead(payload) {
     const r = await fetch('/api/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     const j = await r.json().catch(() => ({}));
@@ -1005,7 +1015,8 @@
     if (!fd.get('consent')) { msg.textContent = 'Necesito tu permiso para guardar tus datos.'; msg.classList.add('err'); return; }
 
     Music.start('title');
-    const payload = { name, email, country, consent: true, consentText: $('#consentText').textContent, website: fd.get('website') || '', elapsedMs: Date.now() - formStart };
+    const dv = deviceInfo();
+    const payload = { name, email, country, device: dv.device, os: dv.os, consent: true, consentText: $('#consentText').textContent, website: fd.get('website') || '', elapsedMs: Date.now() - formStart };
     const btn = $('#regBtn'); btn.disabled = true; msg.textContent = 'Guardando...';
     try {
       const r = await postLead(payload);

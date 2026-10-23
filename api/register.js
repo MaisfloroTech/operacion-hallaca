@@ -53,6 +53,8 @@ export default async function handler(req, res) {
       consent: true,
       consentText: clean(body.consentText, 400),
       character: clean(body.character, 30),
+      device: ['mobile', 'tablet', 'desktop'].includes(body.device) ? body.device : 'desconocido',
+      os: clean(body.os, 20),
       lang: clean(req.headers['accept-language'], 40).split(',')[0],
       createdAt: new Date().toISOString(),
       source: 'rescata-la-hallaca',

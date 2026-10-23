@@ -24,6 +24,11 @@ function csvCell(v) {
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
+  // CORS: el dashboard (artefacto en claude.ai) lee esto desde el navegador. Igual exige el token.
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Authorization');
+  if (req.method === 'OPTIONS') return res.status(204).end();
   const auth = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
   const token = auth || req.query.token;
   if (!process.env.ADMIN_TOKEN || !safeEqual(token, process.env.ADMIN_TOKEN)) {
@@ -45,7 +50,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true, total: leads.length, leads });
   }
 
-  const cols = ['createdAt', 'name', 'email', 'country', 'character', 'lang', 'consent', 'source'];
+  const cols = ['createdAt', 'name', 'email', 'country', 'device', 'os', 'lang', 'consent', 'source'];
   const csv = [cols.join(',')]
     .concat(leads.map((l) => cols.map((c) => csvCell(l[c])).join(',')))
     .join('\n');
