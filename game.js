@@ -889,6 +889,110 @@
     }
   }
 
+  // ---------- Scoreboard ----------
+  function playerId() {
+    let id = store.get('pid', '');
+    if (!/^[A-Za-z0-9-]{16,64}$/.test(id)) {
+      id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+        : Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+      store.set('pid', id);
+    }
+    return id;
+  }
+  let myKey = null;
+  async function myPublicKey() {
+    if (myKey) return myKey;
+    try {
+      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(playerId()));
+      myKey = Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('').slice(0, 10);
+    } catch (e) { myKey = ''; }
+    return myKey;
+  }
+  const flagOf = (cc) => (/^[A-Z]{2}$/.test(cc || '') ? String.fromCodePoint(...[...cc].map((ch) => 127397 + ch.charCodeAt(0))) : '🌎');
+  const mmss = (s) => Math.floor(s / 60) + ':' + String(Math.round(s % 60)).padStart(2, '0');
+
+  async function submitScore(payload, fromQueue) {
+    const el = $('#endRank');
+    if (!fromQueue && el) el.textContent = 'Guardando tu puntaje en el scoreboard…';
+    try {
+      const r = await fetch('/api/scores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const j = await r.json().catch(() => ({}));
+      if (r.ok && j.ok) {
+        store.set('pendingScore', null);
+        if (!fromQueue && el) {
+          el.innerHTML = '';
+          const b = document.createElement('b'); b.textContent = '#' + j.rank;
+          el.append('Quedaste en el puesto ', b, ' de ' + j.total + ' en el scoreboard. ' +
+            (j.improved ? '¡Nuevo récord personal!' : 'Tu mejor puntaje sigue siendo ' + j.best + '.'));
+        }
+        loadBoard(true);
+        return;
+      }
+      if (r.status === 429 || r.status === 400) { store.set('pendingScore', null); if (!fromQueue && el) el.textContent = 'Puedes ver el scoreboard abajo.'; return; }
+      throw new Error('http ' + r.status);
+    } catch (e) {
+      store.set('pendingScore', payload); // se reintenta en la próxima visita
+      if (!fromQueue && el) el.textContent = 'No pude guardar tu puntaje ahora; lo intento de nuevo la próxima vez que entres.';
+    }
+  }
+
+  let boardData = null, boardBusy = false;
+  async function loadBoard(fresh) {
+    if (boardBusy) return;
+    boardBusy = true;
+    const status = $('#boardStatus'), sel = $('#boardFilter');
+    const cc = sel ? sel.value : '';
+    try {
+      const qs = [];
+      if (cc) qs.push('cc=' + encodeURIComponent(cc));
+      if (fresh) qs.push('t=' + Date.now());
+      const r = await fetch('/api/scores' + (qs.length ? '?' + qs.join('&') : ''));
+      const j = await r.json();
+      if (!j.ok) throw new Error('bad');
+      boardData = j;
+      await renderBoard();
+      const when = new Date(j.updatedAt).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+      status.textContent = j.total
+        ? j.total + ' jugador' + (j.total === 1 ? '' : 'es') + ' en ' + j.countries.length + ' país' + (j.countries.length === 1 ? '' : 'es') + ' · actualizado ' + when
+        : 'Todavía nadie termina el juego. ¡Sé la primera persona del scoreboard!';
+    } catch (e) {
+      status.textContent = 'No pude cargar el scoreboard. Toca Actualizar en un ratito.';
+    } finally { boardBusy = false; }
+  }
+  async function renderBoard() {
+    const j = boardData; if (!j) return;
+    const me = await myPublicKey();
+    const list = $('#boardList'); list.innerHTML = '';
+    if (!j.top.length) { const li = document.createElement('li'); li.className = 'board-empty'; li.textContent = 'Aún no hay puntajes aquí.'; list.appendChild(li); }
+    for (const r of j.top) {
+      const li = document.createElement('li'); if (me && r.k === me) li.className = 'me';
+      const rk = document.createElement('span'); rk.className = 'rk'; rk.textContent = r.rank;
+      const who = document.createElement('span'); who.className = 'who';
+      who.textContent = flagOf(r.cc) + ' ' + r.name + ' ';
+      const sm = document.createElement('small'); sm.textContent = r.country + ' · ' + mmss(r.seconds); who.appendChild(sm);
+      const pts = document.createElement('span'); pts.className = 'pts'; pts.textContent = r.score;
+      li.append(rk, who, pts); list.appendChild(li);
+    }
+    const cl = $('#boardCountries'); cl.innerHTML = '';
+    j.countries.forEach((c, i) => {
+      const li = document.createElement('li');
+      const rk = document.createElement('span'); rk.className = 'rk'; rk.textContent = i + 1;
+      const who = document.createElement('span'); who.className = 'who';
+      who.textContent = flagOf(c.cc) + ' ' + c.country + ' ';
+      const sm = document.createElement('small'); sm.textContent = c.players + ' jugador' + (c.players === 1 ? '' : 'es') + ' · récord de ' + c.bestName; who.appendChild(sm);
+      const pts = document.createElement('span'); pts.className = 'pts'; pts.textContent = c.best;
+      li.append(rk, who, pts); cl.appendChild(li);
+    });
+    if (!j.countries.length) { const li = document.createElement('li'); li.className = 'board-empty'; li.textContent = 'Aún no hay países.'; cl.appendChild(li); }
+    // filtro: solo países que ya tienen jugadores
+    const sel = $('#boardFilter'); const keep = sel.value;
+    if (!sel.dataset.filled || sel.options.length - 1 !== j.countries.filter((c) => c.cc).length) {
+      sel.innerHTML = '<option value="">Todo el mundo</option>';
+      j.countries.filter((c) => c.cc).forEach((c) => { const o = document.createElement('option'); o.value = c.cc; o.textContent = flagOf(c.cc) + ' ' + c.country + ' (' + c.players + ')'; sel.appendChild(o); });
+      sel.dataset.filled = '1'; sel.value = keep;
+    }
+  }
+
   function finishGame() {
     game.state = 'kitchenDone';
     $('#kitchen').classList.add('hidden');
@@ -903,6 +1007,9 @@
       $('#endText').textContent = game.heroName + ' consiguió los 12 ingredientes en ' + mins + 'm ' + secs + 's, sobrevivió a ' + game.chismes + ' chisme' + (game.chismes === 1 ? '' : 's') + ' familiar' + (game.chismes === 1 ? '' : 'es') + ', recibió ' + game.hugs + ' abrazo' + (game.hugs === 1 ? '' : 's') + ' de papi y mami y armó la hallaca como manda la tradición. Récord en este dispositivo: ' + best + '.';
       show('end'); Music.setMode('title');
       flushPendingLead();
+      const reg = store.get('registered', {}) || {};
+      submitScore({ pid: playerId(), name: game.heroName, country: reg.country || 'Otro', countryCode: reg.countryCode || '',
+        score: game.score, seconds: Math.round(game.totalTime), hugs: game.hugs, chismes: game.chismes });
     }, 2600);
   }
 
@@ -1238,6 +1345,20 @@
 
   // Solo para pruebas locales: ?debug expone el estado
   if (/[?&]debug\b/.test(location.search)) window.__h = { game, startKitchen, nextLevel };
+
+  // Scoreboard: carga al acercarse a la sección, botones y reintento de puntajes pendientes
+  (function initBoard() {
+    const sec = $('#scoreboard'); if (!sec) return;
+    $('#boardRefresh').addEventListener('click', () => loadBoard(true));
+    $('#boardFilter').addEventListener('change', () => loadBoard(false));
+    $('#goBoard').addEventListener('click', () => loadBoard(true));
+    if ('IntersectionObserver' in window) {
+      const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { loadBoard(false); io.disconnect(); } }, { rootMargin: '400px' });
+      io.observe(sec);
+    } else loadBoard(false);
+    const pend = store.get('pendingScore', null);
+    if (pend) setTimeout(() => submitScore(pend, true), 2500);
+  })();
 
   // Arranque
   if (store.get('registered', null)) { flushPendingLead(); goSetup(); } else show('register');

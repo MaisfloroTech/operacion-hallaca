@@ -102,7 +102,7 @@ window.HALLACA_ASSETS = { version: '12859dc', bases: [
         <div class="panel hidden" id="panel-setup">
           <h2>ESCOGE TU PERSONAJE</h2>
           <div class="chars" id="chars" role="radiogroup" aria-label="Personajes"></div>
-          <label class="inline">Nombre del héroe
+          <label class="inline">Nombre del héroe <span class="field-hint">(así sales en el scoreboard)</span>
             <input id="heroName" maxlength="12" placeholder="Tu nombre">
           </label>
           <h3>LOS TÍOS DE ESTE AÑO</h3>
@@ -154,6 +154,8 @@ window.HALLACA_ASSETS = { version: '12859dc', bases: [
             <button class="btn" type="button" id="againBtn">↻ JUGAR OTRA VEZ</button>
             <button class="btn ghost" type="button" id="shareBtn">↗ RETAR A UN PANA</button>
           </div>
+          <p class="end-rank" id="endRank" aria-live="polite"></p>
+          <a class="btn ghost sb-go" href="#scoreboard" id="goBoard">🏆 VER EL SCOREBOARD</a>
           <a class="follow" href="https://www.instagram.com/maisfloro.tech/" target="_blank" rel="noopener">Sígueme en @maisfloro.tech para más</a>
         </div>
       </div>
@@ -226,9 +228,31 @@ window.HALLACA_ASSETS = { version: '12859dc', bases: [
     </div>
   </section>
 
+  <section id="scoreboard" class="board">
+    <h2>🏆 SCOREBOARD</h2>
+    <p class="lead">Los mejores rescatistas de hallacas del mundo. Termina el juego y tu mejor puntaje aparece aquí con tu país.</p>
+    <div class="board-tools">
+      <label class="board-filter">Ver
+        <select id="boardFilter" aria-label="Filtrar por país"><option value="">Todo el mundo</option></select>
+      </label>
+      <button class="btn ghost board-refresh" id="boardRefresh" type="button">↻ Actualizar</button>
+    </div>
+    <p class="board-status" id="boardStatus" aria-live="polite">Cargando el scoreboard…</p>
+    <div class="board-grid">
+      <div class="board-col">
+        <h3>JUGADORES</h3>
+        <ol class="board-list" id="boardList"></ol>
+      </div>
+      <div class="board-col">
+        <h3>PAÍSES</h3>
+        <ol class="board-list countries" id="boardCountries"></ol>
+      </div>
+    </div>
+  </section>
+
   <section id="privacidad" class="privacy">
     <h2>TUS DATOS, CLARITO</h2>
-    <p>Para jugar te pido nombre, correo y país. Solo los uso para avisarte de primeras cuando lance un juego nuevo, y el país para que te visite un familiar de tu tierra en el juego. No los vendo ni los comparto. Si quieres que te borre, escríbeme por Instagram a <a href="https://www.instagram.com/maisfloro.tech/" target="_blank" rel="noopener">@maisfloro.tech</a> y listo. El juego en sí corre completo en tu navegador: los nombres de los tíos y tu puntaje no salen de tu dispositivo.</p>
+    <p>Para jugar te pido nombre, correo y país. Solo los uso para avisarte de primeras cuando lance un juego nuevo, y el país para que te visite un familiar de tu tierra en el juego. En el scoreboard público solo aparecen el nombre de tu héroe, tu país y tu puntaje: nunca tu correo. No los vendo ni los comparto. Si quieres que te borre, escríbeme por Instagram a <a href="https://www.instagram.com/maisfloro.tech/" target="_blank" rel="noopener">@maisfloro.tech</a> y listo. El juego en sí corre completo en tu navegador: los nombres de los tíos y tu puntaje no salen de tu dispositivo.</p>
   </section>
 </main>
 
