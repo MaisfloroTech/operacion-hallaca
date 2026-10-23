@@ -192,9 +192,9 @@
 
   // ---------- Niveles ----------
   const LEVELS = [
-    { title: 'EL MERCADO', sub: 'Nivel 1', items: ['hoja', 'alinos', 'pimenton', 'onoto'], time: 85, tios: 1, kids: 2, braid: 0.75, theme: 'mercado' },
-    { title: 'LA CARNICERÍA', sub: 'Nivel 2', items: ['res', 'cochino', 'gallina'], time: 80, tios: 1, kids: 2, braid: 0.65, theme: 'carniceria' },
-    { title: 'EL ABASTO', sub: 'Nivel 3', items: ['harina', 'aceitunas', 'pasas', 'alcaparras', 'pabilo'], time: 100, tios: 1, kids: 2, braid: 0.55, theme: 'abasto' },
+    { title: 'EL MERCADO', sub: 'Nivel 1', items: ['hoja', 'alinos', 'pimenton', 'onoto'], time: 85, tios: 2, kids: 1, braid: 0.75, theme: 'mercado' },
+    { title: 'LA CARNICERÍA', sub: 'Nivel 2', items: ['res', 'cochino', 'gallina'], time: 80, tios: 2, kids: 1, braid: 0.65, theme: 'carniceria' },
+    { title: 'EL ABASTO', sub: 'Nivel 3', items: ['harina', 'aceitunas', 'pasas', 'alcaparras', 'pabilo'], time: 100, tios: 2, kids: 1, braid: 0.55, theme: 'abasto' },
   ];
   const DATA = window.HALLACA_DATA || { MAMI: ['¡Un abrazo!'], PAPI: ['¡Un abrazo!'], KIDS: ['¡Juguemos!'], KID_NAMES: ['Santi'], COUNTRY: {} };
 
