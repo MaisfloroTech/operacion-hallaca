@@ -699,25 +699,7 @@
     text(String(game.score).padStart(5, '0'), W - 4 - ctx.measureText(tStr).width - 8, 4, { size: 6, align: 'right' });
 
     // diálogo de tío
-    if (game.msg) {
-      const lines = wrap(game.msg.line, W - 28, 6);
-      const subl = game.msg.sub ? wrap(game.msg.sub, W - 28, 5) : [];
-      const h = 8 + LH(6) + lines.length * LH(6) + (subl.length ? 2 + subl.length * LH(5) : 0);
-      const bg = game.msg.kind === 'love' ? '#5a1a3a' : game.msg.kind === 'pais' ? '#0f3a4a' : game.msg.kind === 'kid' ? '#2a3a12' : game.msg.gift ? '#13402a' : '#151c52';
-      box(6, H - h - 6, W - 12, h, bg);
-      let nx = 12;
-      if (game.msg.icon) { ctx.drawImage(ICONS[game.msg.icon].img, 11, H - h - 2); nx = 23; }
-      text(game.msg.name.toUpperCase() + ':', nx, H - h, { size: 6, color: game.msg.kind === 'love' ? '#ff9ec4' : '#ffcc00' });
-      lines.forEach((l, i) => text(l, 12, H - h + LH(6) + 1 + i * LH(6), { size: 6 }));
-      const sy = H - h + LH(6) + 3 + lines.length * LH(6);
-      subl.forEach((l, i) => text(l, 12, sy + i * LH(5), { size: 5, color: '#b9b6d6' }));
-    } else if (game.toast) {
-      const lines = wrap(game.toast.line, W - 28, 5);
-      const h = 8 + LH(6) + lines.length * LH(5);
-      box(6, H - h - 6, W - 12, h, '#0f2a26', '#120a1e');
-      text('¡' + game.toast.title + '!', 12, H - h, { size: 6, color: '#9be37a' });
-      lines.forEach((l, i) => text(l, 12, H - h + LH(6) + 1 + i * LH(5), { size: 5, color: '#f4efe1' }));
-    }
+    syncMsgBar();
 
     if (game.state === 'intro') {
       ctx.fillStyle = '#050816e6'; ctx.fillRect(0, 0, W, H);
@@ -951,6 +933,47 @@
   function setPad(on) { cabinet.classList.toggle('show-pad', on); }
 
   // Ajusta el canvas al espacio REAL visible (visualViewport evita el bug de 100vh en iOS)
+  // ---------- Barra de mensajes (fuera del canvas: nunca tapa al héroe) ----------
+  let mbKey = '';
+  function syncMsgBar() {
+    const mb = $('#msgbar'); if (!mb) return;
+    let kind = 'goal', name = '', textTxt = '', sub = '';
+    if (game.msg) {
+      kind = game.msg.kind || (game.msg.gift ? 'gift' : 'tio');
+      name = (kind === 'love' ? '♥ ' : '') + game.msg.name.toUpperCase();
+      textTxt = game.msg.line; sub = game.msg.sub || '';
+    } else if (game.toast) {
+      kind = 'toast'; name = '¡' + game.toast.title + '!'; textTxt = game.toast.line;
+    } else if (game.paused) {
+      name = 'PAUSA'; textTxt = 'Toca el juego o presiona P para seguir.';
+    } else if (game.state === 'gameover') {
+      name = 'SE HIZO TARDE'; textTxt = 'Toca el juego o presiona ENTER para reintentar.';
+    } else if (game.state === 'levelDone') {
+      kind = 'toast'; name = '¡NIVEL COMPLETO!'; textTxt = 'Bono de tiempo +' + (game.lastBonus || 0) + '. ¡Vamos al siguiente!';
+    } else {
+      const left = (game.items || []).filter((it) => !it.got).map((it) => ING[it.id].name);
+      name = game.state === 'intro' ? '¡PREPÁRATE!' : 'TE FALTA';
+      textTxt = left.length ? left.join(' · ') : '¡Ya tienes todo!';
+      sub = game.state === 'intro' ? 'Mami y papi dan abrazos (+tiempo). Los tíos solo quieren conversar.' : '';
+    }
+    const key = kind + '|' + name + '|' + textTxt + '|' + sub;
+    if (key === mbKey) return;
+    mbKey = key;
+    mb.dataset.kind = kind;
+    $('#mbName').textContent = name;
+    $('#mbText').textContent = textTxt;
+    $('#mbSub').textContent = sub;
+    fitMsgText();
+  }
+  // Achica la letra lo justo para que el mensaje completo (con traducción) quepa sin cortarse
+  function fitMsgText() {
+    const mb = $('#msgbar'); if (!mb || mb.offsetParent === null) return;
+    mb.style.fontSize = '';
+    const base = parseFloat(getComputedStyle(mb).fontSize) || 20;
+    let k = 1;
+    while (mb.scrollHeight > mb.clientHeight + 1 && k > 0.56) { k -= 0.06; mb.style.fontSize = (base * k).toFixed(1) + 'px'; }
+  }
+
   function fit() {
     if (!cabinet.classList.contains('playing')) { canvas.style.width = ''; $('#stage').style.width = ''; $('#screen').style.minHeight = ''; return; }
     const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
@@ -962,12 +985,25 @@
     const chrome = cabinet.offsetHeight - holder.offsetHeight - padH;
     const credit = $('#credit'); const creditH = credit ? credit.offsetHeight + 10 : 0;
     const barH = audioBar && !audioBar.classList.contains('hidden') ? audioBar.offsetHeight : 0;
-    const avail = vh - 18 - barH - chrome - padH - kitH - creditH - 4;
-    const w = Math.max(200, Math.min(holder.clientWidth, (avail * 4) / 3, 960));
+    const mb = $('#msgbar');
+    mb.classList.remove('side'); mb.style.width = ''; mb.style.left = '';
+    const inKitchen = cabinet.classList.contains('in-kitchen');
+    const msgH = inKitchen ? 0 : mb.offsetHeight;
+    const avail0 = vh - 18 - barH - chrome - padH - kitH - creditH - 4;
+    let avail = avail0 - msgH;
+    let w = Math.max(200, Math.min(holder.clientWidth, (avail * 4) / 3, 960));
+    const landscapePhone = window.matchMedia('(pointer:coarse) and (orientation:landscape) and (max-height:560px)').matches;
+    if (landscapePhone && !inKitchen) {
+      // ¿cabe la barra al costado derecho? así el canvas no pierde altura
+      const wFull = Math.max(200, Math.min(holder.clientWidth, (avail0 * 4) / 3, 960));
+      const side = (holder.clientWidth - wFull) / 2 - 16;
+      if (side >= 140) { mb.classList.add('side'); mb.style.width = Math.floor(side) + 'px'; mb.style.left = Math.floor((holder.clientWidth + wFull) / 2 + 10) + 'px'; avail = avail0; w = wFull; }
+    }
     canvas.style.width = Math.floor(w) + 'px';
     $('#stage').style.width = Math.floor(w) + 'px';
     // en la cocina, la pantalla del juego usa todo el alto disponible para que la tarjeta respire
     $('#screen').style.minHeight = cabinet.classList.contains('in-kitchen') ? Math.floor(avail) + 'px' : '';
+    mbKey = ''; // el tamaño cambió: recalcular la letra de la barra en el próximo cuadro
     const ppl = w / W;
     FS_BUMP = ppl < 1.55 ? 2 : ppl < 2.2 ? 1 : 0;
   }

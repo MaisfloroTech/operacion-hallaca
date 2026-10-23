@@ -69,8 +69,9 @@ window.HALLACA_ASSETS = { version: '26759d4', bases: [
             <label>Tu correo
               <input name="email" type="email" maxlength="120" autocomplete="email" required placeholder="tu@correo.com">
             </label>
-            <label>Tu país
-              <select name="country" required>
+            <label>¿Desde qué país haces las hallacas este año?
+              <span class="field-hint" id="countryHint">El país donde vives hoy, aunque el corazón esté en otro lado.</span>
+              <select name="country" required aria-describedby="countryHint">
                 <option value="">— Escoge —</option>
                 <option>Venezuela</option><option>Colombia</option><option>Chile</option>
                 <option>Argentina</option><option>Perú</option><option>Ecuador</option>
@@ -128,6 +129,11 @@ window.HALLACA_ASSETS = { version: '26759d4', bases: [
               </div>
             </div>
           </div>
+          <div class="msgbar" id="msgbar" aria-live="polite">
+            <p class="mb-name" id="mbName"></p>
+            <p class="mb-text" id="mbText"></p>
+            <p class="mb-sub" id="mbSub"></p>
+          </div>
         </div>
 
         <!-- 4. Fin -->
@@ -151,7 +157,7 @@ window.HALLACA_ASSETS = { version: '26759d4', bases: [
           <button data-k="down">▼</button>
         </div>
         <p class="pad-help">Flechas / WASD para moverte · P pausa · M música · también puedes arrastrar sobre el juego</p>
-        <p class="rotate-hint">Tip: gira el teléfono para jugar en grande · o arrastra el dedo sobre el juego</p>
+        <p class="rotate-hint">Gira el teléfono para jugar en grande · o arrastra el dedo</p>
       </div>
     </div>
   </section>

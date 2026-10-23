@@ -116,6 +116,31 @@ label.inline{max-width:280px; margin:14px auto 0; text-align:left}
 .cabinet.playing .screen{min-height:0}
 .stage{position:relative; margin:0 auto; line-height:0}
 .stage #game{margin:0}
+/* Barra de mensajes: los diálogos viven aquí, nunca encima del juego */
+.msgbar{box-sizing:border-box; width:100%; max-width:960px; height:86px; overflow:hidden; line-height:1.15; text-align:left;
+  background:#151c52; border-top:3px solid var(--ink); padding:7px 12px; transition:background .15s; font-size:21px}
+.msgbar p{margin:0}
+.mb-name{font-family:'Press Start 2P', monospace; font-size:10px; color:var(--yellow); margin-bottom:5px !important; letter-spacing:.02em}
+.mb-text{font-size:1em; color:var(--cream)}
+.mb-sub{font-size:.86em; color:var(--muted)}
+.msgbar[data-kind="love"]{background:#5a1a3a} .msgbar[data-kind="love"] .mb-name{color:#ff9ec4}
+.msgbar[data-kind="pais"]{background:#0f3a4a} .msgbar[data-kind="pais"] .mb-name{color:#7fe3ff}
+.msgbar[data-kind="kid"]{background:#2a3a12} .msgbar[data-kind="kid"] .mb-name{color:#9be37a}
+.msgbar[data-kind="gift"]{background:#13402a}
+.msgbar[data-kind="toast"]{background:#0f2a26} .msgbar[data-kind="toast"] .mb-name{color:#9be37a}
+.msgbar[data-kind="goal"]{background:#0b1033} .msgbar[data-kind="goal"] .mb-name{color:#b8a8ee} .msgbar[data-kind="goal"] .mb-text{color:#d8d4f0; font-size:.92em}
+.msgbar.side{position:absolute; top:0; height:auto; max-height:100%; border:3px solid var(--ink); padding:6px 8px; font-size:17px}
+.msgbar.side .mb-name{font-size:8px}
+.cabinet.in-kitchen .msgbar{display:none}
+/* Teléfonos bajitos en vertical (iPhone SE y similares): D-pad compacto y tip corto para que el juego respire */
+@media (pointer:coarse) and (orientation:portrait) and (max-height:720px){
+  .dpad{grid-template-columns:repeat(3, 62px) !important; grid-template-rows:repeat(2, 46px) !important; gap:4px}
+  .pad{padding-top:8px}
+  .rotate-hint{font-size:15px; margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .msgbar{height:72px; padding:5px 8px; font-size:17px}
+  .mb-name{font-size:8px; margin-bottom:3px !important}
+}
+.field-hint{font-size:17px; color:var(--muted); line-height:1.15; margin-top:-2px}
 /* Cocina: tarjeta de opciones centrada sobre TODA la pantalla del juego */
 .cabinet.in-kitchen .stage, .cabinet.in-kitchen .game-holder{position:static}
 .kitchen{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; padding:4%;
@@ -199,6 +224,8 @@ button{touch-action:manipulation}
 @keyframes beat{50%{transform:scale(1.25)}}
 
 @media (max-width: 640px){
+  .msgbar{height:80px; padding:6px 9px; font-size:19px}
+  .mb-name{font-size:9px}
   body{font-size:20px}
   .chars{grid-template-columns: repeat(2, 1fr)}
   .tios{grid-template-columns: repeat(2, 1fr)}
