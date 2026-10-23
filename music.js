@@ -166,5 +166,9 @@
     return muted;
   }
 
-  window.Music = { start, stop, setMode, sfx, toggleMute, isMuted: () => muted };
+  // iPhone: que suene aunque el teléfono esté en modo silencio (Safari 16.4+)
+  try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { }
+  function isRunning() { return !!ctx && ctx.state === 'running'; }
+  function setPaused(p) { if (!ctx) return; if (p) ctx.suspend(); else ctx.resume(); }
+  window.Music = { start, stop, setMode, sfx, toggleMute, isMuted: () => muted, isRunning, setPaused };
 })();

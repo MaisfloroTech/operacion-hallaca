@@ -113,6 +113,32 @@
   const SHIRTS = ['#e8283a', '#2f6bff', '#ffcc00', '#2f9e44', '#ff7ab6', '#ff8c1a', '#17b3b3', '#a05cff', '#ffffff'];
   const HAIRC = ['#161212', '#3b2416', '#6b3f1d', '#dcdce8', '#9b9b9b', '#b8442a', '#e0b44a'];
 
+  const KID = {
+    1: '3.6h3.', 2: '2.8h2.', 3: '2.1h6s1h2.', 4: '2.1s1e4s1e1s2.', 5: '2.3s2m3s2.', 6: '3.6s3.',
+    7: '2.8t2.', 8: '1.1s8t1s1.', 9: '3.6t3.',
+  };
+  const KID_LEGS = [{ 10: '3.2p2.2p3.', 11: '2.3b2.3b2.' }, { 10: '2.2p4.2p2.', 11: '1.3b4.3b1.' }];
+  function buildKid(pal) {
+    return [0, 1].map((f) => {
+      const rows = new Array(12).fill('............');
+      for (const [r, sp] of Object.entries(KID)) rows[r] = rle(sp);
+      for (const [r, sp] of Object.entries(KID_LEGS[f])) rows[r] = rle(sp);
+      return drawRows(rows, Object.assign({ e: '#1a1020', m: '#7a2b2b', b: '#2a1a12' }, pal), 12, 12, true);
+    });
+  }
+  function makeKid() {
+    const nm = pick(DATA.KID_NAMES);
+    return { name: 'Primo ' + nm, frames: buildKid({ s: pick(SKIN), h: pick(HAIRC), t: pick(SHIRTS), p: pick(['#2f6bff', '#2a2a4a', '#e8283a']) }), kid: true };
+  }
+  const MAMI_REL = { name: 'Mami', frames: buildHuman({ hair: 'curly', skirt: true, pal: { s: '#c88a5a', h: '#2b1a10', t: '#ff7ab6', p: '#e8283a' } }) };
+  const PAPI_REL = { name: 'Papi', frames: buildHuman({ hair: 'short', extras: ['mustache', 'glasses'], pal: { s: '#c88a5a', h: '#3a2a1a', t: '#f4efe1', p: '#3a2a1a', g: '#1a1a1a' } }) };
+  function makeVisitor(country) {
+    const v = DATA.COUNTRY[country] || DATA.COUNTRY['Otro'];
+    if (!v) return null;
+    const rel = makeRelative(v.name);
+    rel.lines = v.lines; rel.country = country || 'Otro';
+    return rel;
+  }
   function makeRelative(name) {
     const isTia = /^t[ií]a\b/i.test(name.trim());
     const isTio = /^t[ií]o\b/i.test(name.trim());
@@ -140,6 +166,7 @@
     alcaparras: { pal: { k: '#7a4a24', j: '#bfe6ff', g: '#3f7a2a' }, rows: ['2.4k2.', '1.6j1.', '1.1j1g2j1g1j1.', '1.2j1g1j1g1j1.', '1.1j1g2j1g1j1.', '1.2j1g1j1g1j1.', '1.6j1.', '2.4j2.'] },
     pabilo: { pal: { w: '#f4efe1' }, rows: ['8.', '2.4w2.', '1.1w4.1w1.', '1.1w1.2w1.1w1.', '1.1w1.2w1.1w1.', '1.1w4.1w1.', '2.4w2.', '6.2w'] },
   };
+  ICONS.arepa = { pal: { w: '#f1dca8', b: '#b9783a' }, rows: ['8.', '2.4w2.', '1.6w1.', '1.2w1b3w1.', '1.4w1b1w1.', '1.1w1b4w1.', '2.4w2.', '8.'] };
   for (const k in ICONS) ICONS[k].img = drawRows(ICONS[k].rows.map(rle), ICONS[k].pal, 8, 8, true);
 
   const ING = {
@@ -159,10 +186,11 @@
 
   // ---------- Niveles ----------
   const LEVELS = [
-    { title: 'EL MERCADO', sub: 'Nivel 1', items: ['hoja', 'alinos', 'pimenton', 'onoto'], time: 60, tios: 2, theme: 'mercado' },
-    { title: 'LA CARNICERÍA', sub: 'Nivel 2', items: ['res', 'cochino', 'gallina'], time: 55, tios: 3, theme: 'carniceria' },
-    { title: 'EL ABASTO', sub: 'Nivel 3', items: ['harina', 'aceitunas', 'pasas', 'alcaparras', 'pabilo'], time: 75, tios: 4, theme: 'abasto' },
+    { title: 'EL MERCADO', sub: 'Nivel 1', items: ['hoja', 'alinos', 'pimenton', 'onoto'], time: 85, tios: 2, kids: 2, braid: 0.34, theme: 'mercado' },
+    { title: 'LA CARNICERÍA', sub: 'Nivel 2', items: ['res', 'cochino', 'gallina'], time: 80, tios: 3, kids: 2, braid: 0.24, theme: 'carniceria' },
+    { title: 'EL ABASTO', sub: 'Nivel 3', items: ['harina', 'aceitunas', 'pasas', 'alcaparras', 'pabilo'], time: 100, tios: 3, kids: 3, braid: 0.16, theme: 'abasto' },
   ];
+  const DATA = window.HALLACA_DATA || { MAMI: ['¡Un abrazo!'], PAPI: ['¡Un abrazo!'], KIDS: ['¡Juguemos!'], KID_NAMES: ['Santi'], COUNTRY: {} };
 
   const CHISMES = [
     '¿Y el novio o la novia pa\' cuándo?',
@@ -246,45 +274,67 @@
     abasto: { floorA: '#8a5a34', floorB: '#7d5130', wall: '#2a1d1a' },
   };
 
-  function genMap() {
-    for (let tries = 0; tries < 200; tries++) {
-      const m = [];
-      for (let y = 0; y < MH; y++) { m.push(new Array(MW).fill(0)); }
-      for (let x = 0; x < MW; x++) { m[0][x] = 1; m[MH - 1][x] = 1; }
-      for (let y = 0; y < MH; y++) { m[y][0] = 1; m[y][MW - 1] = 1; }
-      const rowsY = [3, 8, 13];
-      for (const ry of rowsY) {
-        let x = 3 + Math.floor(rnd() * 2);
-        while (x < MW - 3) {
-          const len = 3 + Math.floor(rnd() * 4);
-          for (let i = 0; i < len && x + i < MW - 2; i++) { m[ry][x + i] = 1; m[ry + 1][x + i] = 1; }
-          x += len + 2 + Math.floor(rnd() * 2);
-        }
-      }
-      // cajas sueltas
-      for (let i = 0; i < 6; i++) {
-        const x = 2 + Math.floor(rnd() * (MW - 4)), y = 2 + Math.floor(rnd() * (MH - 4));
-        if (y >= 17 && x < 6) continue;
-        if (m[y][x] === 0 && m[y - 1][x] === 0 && m[y + 1][x] === 0) m[y][x] = 2;
-      }
-      m[18][2] = 0; m[19][2] = 0; m[18][3] = 0; m[19][3] = 0;
-      // conectividad
-      const seen = m.map((r) => r.map(() => false));
-      const q = [[2, 19]]; seen[19][2] = true; let count = 0;
-      while (q.length) {
-        const [x, y] = q.pop(); count++;
-        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-          const nx = x + dx, ny = y + dy;
-          if (m[ny] && m[ny][nx] === 0 && !seen[ny][nx]) { seen[ny][nx] = true; q.push([nx, ny]); }
-        }
-      }
-      let floor = 0; for (const r of m) for (const c of r) if (c === 0) floor++;
-      // conectividad 2x2 aproximada: el jugador ocupa ~1.3 tiles, exigimos pasillos de ≥2
-      if (count === floor) return { m, seen };
+  // Laberinto: backtracker recursivo sobre una grilla de 10x7 celdas (pasillos de 2 tiles)
+  // + "braid": abre paredes extra para crear loops y que no sea frustrante con tíos persiguiendo.
+  const CW = 10, CH = 7;
+  function genMap(braid) {
+    const m = [];
+    for (let y = 0; y < MH; y++) m.push(new Array(MW).fill(1));
+    const vis = [];
+    for (let y = 0; y < CH; y++) vis.push(new Array(CW).fill(false));
+    const openCell = (cx, cy) => { for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++) m[1 + 3 * cy + dy][1 + 3 * cx + dx] = 0; };
+    const link = (ax, ay, bx, by) => {
+      if (ay === by) { const wx = 3 + 3 * Math.min(ax, bx); m[1 + 3 * ay][wx] = 0; m[2 + 3 * ay][wx] = 0; }
+      else { const wy = 3 + 3 * Math.min(ay, by); m[wy][1 + 3 * ax] = 0; m[wy][2 + 3 * ax] = 0; }
+    };
+    const st = [[0, CH - 1]]; vis[CH - 1][0] = true; openCell(0, CH - 1);
+    while (st.length) {
+      const [cx, cy] = st[st.length - 1];
+      const nb = shuffle([[1, 0], [-1, 0], [0, 1], [0, -1]]).map(([dx, dy]) => [cx + dx, cy + dy])
+        .filter(([x, y]) => x >= 0 && y >= 0 && x < CW && y < CH && !vis[y][x]);
+      if (!nb.length) { st.pop(); continue; }
+      const [nx, ny] = nb[0]; vis[ny][nx] = true; openCell(nx, ny); link(cx, cy, nx, ny); st.push([nx, ny]);
     }
-    return null;
+    for (let cy = 0; cy < CH; cy++) for (let cx = 0; cx < CW; cx++) {
+      if (cx < CW - 1 && rnd() < braid) link(cx, cy, cx + 1, cy);
+      if (cy < CH - 1 && rnd() < braid) link(cx, cy, cx, cy + 1);
+    }
+    return m;
   }
-
+  function cellOpen(cx, cy, nx, ny) {
+    if (nx < 0 || ny < 0 || nx >= CW || ny >= CH) return false;
+    const m = game.map;
+    if (ny === cy) return m[1 + 3 * cy][3 + 3 * Math.min(cx, nx)] === 0;
+    return m[3 + 3 * Math.min(cy, ny)][1 + 3 * cx] === 0;
+  }
+  const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+  function cellOf(o) { return [clamp(Math.floor(o.x / 24), 0, CW - 1), clamp(Math.floor((o.y + 13 - TOP - 8) / 24), 0, CH - 1)]; }
+  function anchor(cx, cy) { return [(1 + 3 * cx) * T, TOP + (1 + 3 * cy) * T - 7]; }
+  function bfs(from) {
+    const dist = [], prev = [];
+    for (let y = 0; y < CH; y++) { dist.push(new Array(CW).fill(-1)); prev.push(new Array(CW).fill(null)); }
+    const q = [from]; dist[from[1]][from[0]] = 0;
+    while (q.length) {
+      const [cx, cy] = q.shift();
+      for (const [dx, dy] of DIRS) {
+        const nx = cx + dx, ny = cy + dy;
+        if (cellOpen(cx, cy, nx, ny) && dist[ny][nx] < 0) { dist[ny][nx] = dist[cy][cx] + 1; prev[ny][nx] = [cx, cy]; q.push([nx, ny]); }
+      }
+    }
+    return { dist, prev };
+  }
+  // Siguiente celda en el camino más corto de "from" a "to" (los tíos te siguen por los pasillos)
+  function bfsNext(from, to) {
+    if (from[0] === to[0] && from[1] === to[1]) return to;
+    const { prev } = bfs(from);
+    let cur = to, guard = 0;
+    while (prev[cur[1]][cur[0]] && guard++ < 80) {
+      const pv = prev[cur[1]][cur[0]];
+      if (pv[0] === from[0] && pv[1] === from[1]) return cur;
+      cur = pv;
+    }
+    return from;
+  }
   function renderMap(m, theme) {
     const th = THEMES[theme];
     const c = document.createElement('canvas'); c.width = W; c.height = H - TOP;
@@ -364,72 +414,151 @@
   function startLevel(i) {
     const L = LEVELS[i];
     game.levelIdx = i;
-    let res = null; while (!res) res = genMap();
-    game.map = res.m; game.bg = renderMap(game.map, L.theme);
-    game.items = [];
-    game.player = { x: 2 * T, y: TOP + 18 * T, dir: 1, anim: 0, stun: 0 };
-    const floor = floorTiles();
+    game.map = genMap(L.braid); game.bg = renderMap(game.map, L.theme);
+    game.items = []; game.particles = [];
+    game.player = { x: T, y: TOP + 19 * T - 11, dir: 1, anim: 0, stun: 0, hug: 0 };
+    const { dist } = bfs([0, CH - 1]);
+    const cells = [];
+    for (let cy = 0; cy < CH; cy++) for (let cx = 0; cx < CW; cx++) cells.push([cx, cy, dist[cy][cx]]);
+    const far = cells.filter((c) => c[2] >= 5);
     const chosen = [];
     for (const id of L.items) {
-      let spot = null;
-      for (let k = 0; k < 400 && !spot; k++) {
-        const [x, y] = pick(floor);
-        if (Math.hypot(x - 2, y - 19) < 9) continue;
-        if (chosen.some((c) => Math.hypot(c[0] - x, c[1] - y) < 6)) continue;
-        spot = [x, y];
-      }
-      spot = spot || pick(floor); chosen.push(spot);
-      game.items.push({ id, x: spot[0] * T, y: TOP + spot[1] * T, got: false });
+      const c = shuffle(far).find((c2) => chosen.every((o) => Math.abs(o[0] - c2[0]) + Math.abs(o[1] - c2[1]) >= 3)) || pick(far.length ? far : cells);
+      chosen.push(c);
+      game.items.push({ id, x: (1 + 3 * c[0]) * T + 4, y: TOP + (1 + 3 * c[1]) * T + 4, got: false });
     }
-    game.tios = [];
-    for (let k = 0; k < L.tios; k++) {
-      const rel = game.relatives[(i * 2 + k) % game.relatives.length];
-      let spot; do { spot = pick(floor); } while (Math.hypot(spot[0] - 2, spot[1] - 19) < 8);
-      game.tios.push({ rel, x: spot[0] * T - 4, y: TOP + spot[1] * T - 8, dx: 0, dy: 0, turn: 0, anim: 0, cool: 2 });
-    }
+    const used = new Set(chosen.map((c) => c[0] + ',' + c[1])); used.add('0,' + (CH - 1));
+    const freeCell = (minD) => {
+      for (let k = 0; k < 300; k++) { const c = pick(cells); if (c[2] >= minD && !used.has(c[0] + ',' + c[1])) { used.add(c[0] + ',' + c[1]); return c; } }
+      return pick(cells);
+    };
+    game.npcs = [];
+    const mk = (kind, rel, c, speed) => {
+      const [ax, ay] = anchor(c[0], c[1]);
+      game.npcs.push({ kind, rel, x: ax, y: ay, speed, dx: 0, dy: 0, anim: 0, face: 1, cool: 3, goal: [c[0], c[1]], prev: null, mode: 'wander', modeT: 1 + rnd() * 2 });
+    };
+    for (let k = 0; k < L.tios; k++) mk('tio', game.relatives[(i * 2 + k) % game.relatives.length], freeCell(4), 36);
+    if (game.visitor) mk('pais', game.visitor, freeCell(4), 32);
+    for (let k = 0; k < L.kids; k++) mk('kid', makeKid(), freeCell(2), 60);
+    mk('mami', MAMI_REL, freeCell(3), 24);
+    mk('papi', PAPI_REL, freeCell(3), 24);
     game.timeLeft = L.time;
     game.msg = null; game.toast = null;
     game.state = 'intro'; game.introT = 0;
     Music.setMode('game');
     if (typeof setPad === 'function') { setPad(true); fit(); }
   }
-
-  function setDialog(name, line, dur, gift) {
-    game.msg = { name, line, t: dur, gift };
+  function setDialog(name, line, dur, opts) { game.msg = Object.assign({ name, line, t: dur }, opts || {}); }
+  function moveToward(o, tx, ty, s) {
+    const ddx = tx - o.x, ddy = ty - o.y;
+    let mx = 0, my = 0;
+    if (Math.abs(ddx) > 0.5) { mx = Math.sign(ddx) * Math.min(s, Math.abs(ddx)); if (boxHits(o.x + mx, o.y)) mx = 0; }
+    if (!mx && Math.abs(ddy) > 0.5) { my = Math.sign(ddy) * Math.min(s, Math.abs(ddy)); if (boxHits(o.x, o.y + my)) my = 0; }
+    o.x += mx; o.y += my;
+    o.dx = Math.sign(mx); o.dy = Math.sign(my);
+    return Math.abs(tx - o.x) <= 0.5 && Math.abs(ty - o.y) <= 0.5;
   }
-
-  // ---------- Update ----------
+  // IA: tíos y visitante persiguen por el camino más corto (con pausas cortas),
+  // mami y papi vienen a buscarte despacito, los primitos corren al azar.
+  function npcStep(n, dt) {
+    const p = game.player, s = n.speed * dt;
+    if (n.cool > 0) n.cool -= dt;
+    n.modeT -= dt;
+    if (n.modeT <= 0) {
+      if (n.kind === 'kid') { n.mode = 'wander'; n.modeT = 99; }
+      else if (n.kind === 'mami' || n.kind === 'papi') { n.mode = 'chase'; n.modeT = 99; }
+      else { n.mode = n.mode === 'chase' ? 'wander' : 'chase'; n.modeT = n.mode === 'chase' ? 7 + rnd() * 4 : 0.8 + rnd(); }
+    }
+    const here = cellOf(n), pc = cellOf(p);
+    if (n.mode === 'chase' && here[0] === pc[0] && here[1] === pc[1]) { moveToward(n, p.x, p.y, s); n.goal = null; }
+    else {
+      if (!n.goal) n.goal = here;
+      const [gx, gy] = anchor(n.goal[0], n.goal[1]);
+      if (moveToward(n, gx, gy, s)) {
+        if (n.mode === 'chase') { n.prev = n.goal; n.goal = bfsNext(n.goal, pc); }
+        else {
+          const opts = DIRS.map(([dx, dy]) => [n.goal[0] + dx, n.goal[1] + dy]).filter((c) => cellOpen(n.goal[0], n.goal[1], c[0], c[1]));
+          let ch = opts.filter((c) => !n.prev || c[0] !== n.prev[0] || c[1] !== n.prev[1]);
+          if (!ch.length) ch = opts;
+          n.prev = n.goal; n.goal = ch.length ? pick(ch) : n.goal;
+        }
+      }
+    }
+    n.anim = n.dx || n.dy ? n.anim + dt : 0;
+    if (n.dx) n.face = n.dx;
+  }
+  function hearts(x, y, k) {
+    for (let i = 0; i < k; i++) game.particles.push({ x: x + rnd() * 12 - 2, y: y + rnd() * 6, vx: (rnd() - 0.5) * 18, vy: -18 - rnd() * 22, t: 1.1 + rnd() * 0.6 });
+  }
+  function meet(n) {
+    const p = game.player;
+    if (n.kind === 'tio') {
+      n.cool = 5; n.mode = 'wander'; n.modeT = 3;
+      if (rnd() < 0.18) { game.timeLeft += 6; Music.sfx('gift'); setDialog(n.rel.name, pick(REGALOS), 2.2, { gift: true }); }
+      else { p.stun = 2.2; game.chismes++; Music.sfx('bump'); game.flash = 0.15; setDialog(n.rel.name, pick(CHISMES), 2.4); }
+    } else if (n.kind === 'pais') {
+      n.cool = 6; n.mode = 'wander'; n.modeT = 3;
+      const ln = pick(n.rel.lines);
+      p.stun = 1.8; game.visits++; Music.sfx('select');
+      setDialog(n.rel.name + ' (' + n.rel.country + ')', ln.t, 3.6, { kind: 'pais', sub: ln.es });
+    } else if (n.kind === 'kid') {
+      n.cool = 4; p.stun = 0.9; Music.sfx('bump');
+      setDialog(n.rel.name, pick(DATA.KIDS), 1.6, { kind: 'kid' });
+      n.mode = 'wander'; n.goal = null;
+    } else {
+      n.cool = 11; n.mode = 'wander'; n.modeT = 6;
+      p.hug = 1.5; game.timeLeft += 5; game.hugs++; Music.sfx('gift');
+      hearts(p.x + 2, p.y, 10);
+      const lines = n.kind === 'mami' ? DATA.MAMI : DATA.PAPI;
+      setDialog(n.rel.name, pick(lines) + ' +5s', 3.2, { kind: 'love', icon: 'arepa' });
+    }
+  }
   function update(dt) {
     game.t += dt;
     if (game.paused) return;
     if (game.toast) { game.toast.t -= dt; if (game.toast.t <= 0) game.toast = null; }
     if (game.flash > 0) game.flash -= dt;
-
-    if (game.state === 'intro') { game.introT += dt; if (game.introT > 3.2) game.state = 'play'; return; }
+    if (game.particles) {
+      for (const pt of game.particles) { pt.t -= dt; pt.x += pt.vx * dt; pt.y += pt.vy * dt; pt.vy += 10 * dt; }
+      game.particles = game.particles.filter((pt) => pt.t > 0);
+    }
+    if (game.state === 'intro') { game.introT += dt; if (game.introT > 3.6) game.state = 'play'; return; }
     if (game.state === 'levelDone') { game.doneT += dt; if (game.doneT > 2.8) nextLevel(); return; }
     if (game.state !== 'play') return;
-
     game.timeLeft -= dt; game.totalTime += dt;
     if (game.timeLeft <= 0) { game.timeLeft = 0; game.state = 'gameover'; Music.sfx('lose'); return; }
-
     const p = game.player;
     if (game.msg) { game.msg.t -= dt; if (game.msg.t <= 0) game.msg = null; }
     if (p.stun > 0) p.stun -= dt;
-
+    if (p.hug > 0) { p.hug -= dt; if (rnd() < dt * 6) hearts(p.x + 2, p.y, 1); }
+    const frozen = p.stun > 0 || p.hug > 0;
     let dx = 0, dy = 0;
-    if (p.stun <= 0) {
-      if (keys.left) dx -= 1; if (keys.right) dx += 1; if (keys.up) dy -= 1; if (keys.down) dy += 1;
+    if (!frozen) { if (keys.left) dx -= 1; if (keys.right) dx += 1; if (keys.up) dy -= 1; if (keys.down) dy += 1; }
+    const sp = 72 * dt;
+    if (dx && dy) {
+      dx *= 0.7071; dy *= 0.7071;
+      const nx = p.x + dx * sp; if (!boxHits(nx, p.y)) p.x = nx;
+      const ny = p.y + dy * sp; if (!boxHits(p.x, ny)) p.y = ny;
+    } else if (dx) { // ayuda para doblar esquinas: si chocas, te acomoda al pasillo
+      const nx = p.x + dx * sp;
+      if (!boxHits(nx, p.y)) p.x = nx;
+      else for (let k = 1; k <= 8; k++) {
+        if (!boxHits(nx, p.y - k)) { p.y -= Math.min(sp, k); break; }
+        if (!boxHits(nx, p.y + k)) { p.y += Math.min(sp, k); break; }
+      }
+    } else if (dy) {
+      const ny = p.y + dy * sp;
+      if (!boxHits(p.x, ny)) p.y = ny;
+      else for (let k = 1; k <= 8; k++) {
+        if (!boxHits(p.x - k, ny)) { p.x -= Math.min(sp, k); break; }
+        if (!boxHits(p.x + k, ny)) { p.x += Math.min(sp, k); break; }
+      }
     }
-    if (dx && dy) { dx *= 0.7071; dy *= 0.7071; }
-    const sp = 70 * dt;
-    if (dx) { const nx = p.x + dx * sp; if (!boxHits(nx, p.y)) p.x = nx; p.dir = dx < 0 ? -1 : 1; }
-    if (dy) { const ny = p.y + dy * sp; if (!boxHits(p.x, ny)) p.y = ny; }
+    if (dx) p.dir = dx < 0 ? -1 : 1;
     p.anim = dx || dy ? p.anim + dt : 0;
-
-    // ingredientes
     for (const it of game.items) {
       if (it.got) continue;
-      if (Math.abs(p.x + 8 - (it.x + 4)) < 9 && Math.abs(p.y + 12 - (it.y + 4)) < 9) {
+      if (Math.abs(p.x + 8 - (it.x + 4)) < 10 && Math.abs(p.y + 12 - (it.y + 4)) < 10) {
         it.got = true; game.score += 100; Music.sfx('pick');
         game.toast = { title: ING[it.id].name.toUpperCase(), line: ING[it.id].tip, t: 3.4 };
       }
@@ -439,36 +568,11 @@
       game.score += bonus; game.lastBonus = bonus;
       game.state = 'levelDone'; game.doneT = 0; Music.sfx('level'); return;
     }
-
-    // tíos
-    for (const tio of game.tios) {
-      tio.turn -= dt; if (tio.cool > 0) tio.cool -= dt;
-      if (tio.turn <= 0) {
-        tio.turn = 0.8 + rnd() * 2.2;
-        const d = pick([[1, 0], [-1, 0], [0, 1], [0, -1], [0, 0], [1, 0], [-1, 0]]).slice();
-        // a veces se acercan al jugador (chismosos al fin)
-        if (rnd() < 0.35) { const ax = p.x - tio.x, ay = p.y - tio.y; if (Math.abs(ax) > Math.abs(ay)) { d[0] = Math.sign(ax); d[1] = 0; } else { d[0] = 0; d[1] = Math.sign(ay); } }
-        tio.dx = d[0]; tio.dy = d[1];
-      }
-      const s = 28 * dt;
-      const nx = tio.x + tio.dx * s, ny = tio.y + tio.dy * s;
-      if (tio.dx && !boxHits(nx, tio.y)) tio.x = nx; else if (tio.dx) tio.turn = 0;
-      if (tio.dy && !boxHits(tio.x, ny)) tio.y = ny; else if (tio.dy) tio.turn = 0;
-      tio.anim = tio.dx || tio.dy ? tio.anim + dt : 0;
-
-      if (tio.cool <= 0 && p.stun <= 0 && Math.abs(p.x - tio.x) < 10 && Math.abs(p.y - tio.y) < 10) {
-        tio.cool = 5;
-        if (rnd() < 0.22) {
-          game.timeLeft += 6; Music.sfx('gift');
-          setDialog(tio.rel.name, pick(REGALOS), 2.2, true);
-        } else {
-          p.stun = 2.4; game.chismes++; Music.sfx('bump'); game.flash = 0.15;
-          setDialog(tio.rel.name, pick(CHISMES), 2.4, false);
-        }
-      }
+    for (const n of game.npcs) {
+      npcStep(n, dt);
+      if (n.cool <= 0 && p.stun <= 0 && p.hug <= 0 && Math.abs(p.x - n.x) < 11 && Math.abs(p.y - n.y) < 11) meet(n);
     }
   }
-
   function nextLevel() {
     game.items = [];
     if (game.levelIdx + 1 < LEVELS.length) startLevel(game.levelIdx + 1);
@@ -480,6 +584,11 @@
     x = Math.round(x) - 1; y = Math.round(y) - 1;
     if (flip) { ctx.save(); ctx.translate(x + img.width, y); ctx.scale(-1, 1); ctx.drawImage(img, 0, 0); ctx.restore(); }
     else ctx.drawImage(img, x, y);
+  }
+  function drawHeart(x, y, c) {
+    ctx.fillStyle = c;
+    ctx.fillRect(x, y, 2, 1); ctx.fillRect(x + 3, y, 2, 1);
+    ctx.fillRect(x, y + 1, 5, 1); ctx.fillRect(x + 1, y + 2, 3, 1); ctx.fillRect(x + 2, y + 3, 1, 1);
   }
   function shadow(x, y) { ctx.fillStyle = '#00000040'; ctx.fillRect(Math.round(x) + 3, Math.round(y) + 14, 10, 3); }
 
@@ -500,13 +609,17 @@
       ctx.drawImage(ICONS[it.id].img, it.x - 1, it.y - 2 + bob);
       if (Math.floor(game.t * 3 + it.x) % 4 === 0) { ctx.fillStyle = '#fff'; ctx.fillRect(it.x + 7, it.y - 3 + bob, 1, 1); }
     } });
-    for (const tio of game.tios) ents.push({ y: tio.y + 6, draw: () => {
-      shadow(tio.x, tio.y);
-      drawSprite(tio.rel.frames[Math.floor(tio.anim * 6) % 2], tio.x, tio.y, tio.dx < 0);
-      ctx.font = FONT(5); const w = ctx.measureText(tio.rel.name).width; const lh = LH(5) - 1;
-      const lx = Math.round(Math.max(w / 2 + 3, Math.min(W - w / 2 - 3, tio.x + 8)));
-      ctx.fillStyle = '#120a1ecc'; ctx.fillRect(Math.round(lx - w / 2) - 2, Math.round(tio.y) - lh - 1, w + 4, lh);
-      text(tio.rel.name, lx, Math.round(tio.y) - lh, { size: 5, align: 'center', color: '#ffcc00', shadow: false });
+    const LABEL = { tio: '#ffcc00', pais: '#7fe3ff', kid: '#9be37a', mami: '#ff9ec4', papi: '#ff9ec4' };
+    for (const n of game.npcs) ents.push({ y: n.y + 6, draw: () => {
+      shadow(n.x, n.y);
+      const fr = n.rel.frames[Math.floor(n.anim * (n.kind === 'kid' ? 10 : 6)) % 2];
+      if (n.kind === 'kid') drawSprite(fr, n.x + 2, n.y + 4, n.face < 0); else drawSprite(fr, n.x, n.y, n.face < 0);
+      ctx.font = FONT(5); const w = ctx.measureText(n.rel.name).width; const lh = LH(5) - 1;
+      const ty = Math.max(TOP + lh + 1, Math.round(n.y) + (n.kind === 'kid' ? 4 : 0));
+      const lx = Math.round(Math.max(w / 2 + 3, Math.min(W - w / 2 - 3, n.x + 8)));
+      ctx.fillStyle = '#120a1ecc'; ctx.fillRect(Math.round(lx - w / 2) - 2, ty - lh - 1, w + 4, lh);
+      text(n.rel.name, lx, ty - lh, { size: 5, align: 'center', color: LABEL[n.kind], shadow: false });
+      if ((n.kind === 'mami' || n.kind === 'papi') && n.cool <= 0) drawHeart(Math.round(n.x + 6), ty - lh - 7 + Math.round(Math.sin(game.t * 5)), '#ff4f7a');
     } });
     const p = game.player;
     ents.push({ y: p.y + 6, draw: () => {
@@ -518,6 +631,7 @@
       }
     } });
     ents.sort((a, b) => a.y - b.y).forEach((e) => e.draw());
+    for (const pt of game.particles) { ctx.globalAlpha = Math.min(1, pt.t * 1.5); drawHeart(Math.round(pt.x), Math.round(pt.y), '#ff4f7a'); ctx.globalAlpha = 1; }
 
     if (game.flash > 0) { ctx.fillStyle = '#ffffff55'; ctx.fillRect(0, TOP, W, H - TOP); }
     if (drag && drag.moved) {
@@ -545,10 +659,16 @@
     // diálogo de tío
     if (game.msg) {
       const lines = wrap(game.msg.line, W - 28, 6);
-      const h = 8 + LH(6) + lines.length * LH(6);
-      box(6, H - h - 6, W - 12, h, game.msg.gift ? '#13402a' : '#151c52');
-      text(game.msg.name.toUpperCase() + ':', 12, H - h, { size: 6, color: '#ffcc00' });
+      const subl = game.msg.sub ? wrap(game.msg.sub, W - 28, 5) : [];
+      const h = 8 + LH(6) + lines.length * LH(6) + (subl.length ? 2 + subl.length * LH(5) : 0);
+      const bg = game.msg.kind === 'love' ? '#5a1a3a' : game.msg.kind === 'pais' ? '#0f3a4a' : game.msg.kind === 'kid' ? '#2a3a12' : game.msg.gift ? '#13402a' : '#151c52';
+      box(6, H - h - 6, W - 12, h, bg);
+      let nx = 12;
+      if (game.msg.icon) { ctx.drawImage(ICONS[game.msg.icon].img, 11, H - h - 2); nx = 23; }
+      text(game.msg.name.toUpperCase() + ':', nx, H - h, { size: 6, color: game.msg.kind === 'love' ? '#ff9ec4' : '#ffcc00' });
       lines.forEach((l, i) => text(l, 12, H - h + LH(6) + 1 + i * LH(6), { size: 6 }));
+      const sy = H - h + LH(6) + 3 + lines.length * LH(6);
+      subl.forEach((l, i) => text(l, 12, sy + i * LH(5), { size: 5, color: '#b9b6d6' }));
     } else if (game.toast) {
       const lines = wrap(game.toast.line, W - 28, 5);
       const h = 8 + LH(6) + lines.length * LH(5);
@@ -567,6 +687,7 @@
         ctx.drawImage(ICONS[id].img, W / 2 - 60, y - 2);
         text(ING[id].name, W / 2 - 46, y, { size: 6 });
       });
+      text('Busca a mami y papi: abrazo, arepita y +5s', W / 2, H - 34, { size: 5, align: 'center', color: '#ff9ec4' });
       text('¡CUIDADO CON LOS TÍOS!', W / 2, H - 22, { size: 6, align: 'center', color: Math.floor(game.t * 3) % 2 ? '#e8283a' : '#f4efe1' });
     }
     if (game.state === 'levelDone') {
@@ -691,7 +812,7 @@
       $('#endTitle').textContent = '¡SALVASTE LA NAVIDAD!';
       $('#endScore').textContent = String(game.score);
       const mins = Math.floor(game.totalTime / 60), secs = Math.round(game.totalTime % 60);
-      $('#endText').textContent = game.heroName + ' consiguió los 12 ingredientes en ' + mins + 'm ' + secs + 's, sobrevivió a ' + game.chismes + ' chisme' + (game.chismes === 1 ? '' : 's') + ' familiar' + (game.chismes === 1 ? '' : 'es') + ' y armó la hallaca como manda la tradición. Récord en este dispositivo: ' + best + '.';
+      $('#endText').textContent = game.heroName + ' consiguió los 12 ingredientes en ' + mins + 'm ' + secs + 's, sobrevivió a ' + game.chismes + ' chisme' + (game.chismes === 1 ? '' : 's') + ' familiar' + (game.chismes === 1 ? '' : 'es') + ', recibió ' + game.hugs + ' abrazo' + (game.hugs === 1 ? '' : 's') + ' de papi y mami y armó la hallaca como manda la tradición. Récord en este dispositivo: ' + best + '.';
       show('end'); Music.setMode('title');
       flushPendingLead();
     }, 2600);
@@ -784,14 +905,17 @@
     const kit = $('#kitchen'); const kitH = kit.classList.contains('hidden') ? 0 : kit.offsetHeight;
     canvas.style.width = '10px';
     const chrome = cabinet.offsetHeight - holder.offsetHeight - padH;
-    const avail = vh - 18 - chrome - padH - kitH - 4;
+    const credit = $('#credit'); const creditH = credit ? credit.offsetHeight + 10 : 0;
+    const barH = audioBar && !audioBar.classList.contains('hidden') ? audioBar.offsetHeight : 0;
+    const avail = vh - 18 - barH - chrome - padH - kitH - creditH - 4;
     const w = Math.max(200, Math.min(holder.clientWidth, (avail * 4) / 3, 960));
     canvas.style.width = Math.floor(w) + 'px';
     const ppl = w / W;
     FS_BUMP = ppl < 1.55 ? 2 : ppl < 2.2 ? 1 : 0;
   }
   function scrollToCabinet() {
-    const y = cabinet.getBoundingClientRect().top + window.scrollY - 18;
+    const bar = $('#audioBar'); const barH = bar && !bar.classList.contains('hidden') ? bar.offsetHeight : 0;
+    const y = cabinet.getBoundingClientRect().top + window.scrollY - 18 - barH;
     window.scrollTo({ top: y, behavior: 'instant' });
   }
   let fitT = null;
@@ -867,6 +991,9 @@
       b.addEventListener('click', () => { selected = h.id; Music.sfx('select'); Music.start('title'); [...wrapC.children].forEach((x) => x.setAttribute('aria-checked', 'false')); b.setAttribute('aria-checked', 'true'); });
       wrapC.appendChild(b);
     });
+    const ctry = (store.get('registered', {}) || {}).country;
+    const vis = DATA.COUNTRY[ctry] || DATA.COUNTRY['Otro'];
+    $('#visitor').textContent = vis ? 'Este año viene de visita ' + vis.name + (ctry && ctry !== 'Otro' ? ' desde ' + ctry : '') + '. Y mami y papi te están esperando con arepitas.' : '';
     const saved = store.get('tios', null);
     fillTios(saved && saved.length === 6 ? saved : randomTios());
     show('setup');
@@ -885,7 +1012,8 @@
     store.set('hero', selected); store.set('heroName', nm); store.set('tios', tios);
     game.hero = heroDef; game.heroName = nm;
     game.relatives = shuffle(tios).map(makeRelative);
-    game.score = 0; game.chismes = 0; game.totalTime = 0; game.items = []; game.paused = false;
+    game.score = 0; game.chismes = 0; game.hugs = 0; game.visits = 0; game.totalTime = 0; game.items = []; game.paused = false;
+    game.visitor = makeVisitor((store.get('registered', {}) || {}).country);
     $('#kitchen').classList.add('hidden');
     show('game');
     Music.start('game'); Music.setMode('game');
@@ -901,6 +1029,23 @@
     if (navigator.share) { try { await navigator.share({ title: '¡Rescata la Hallaca!', text: t, url }); return; } catch (e) { /* cancelado */ } }
     window.open('https://wa.me/?text=' + encodeURIComponent(t + ' ' + url), '_blank', 'noopener');
   });
+
+  // ---------- Audio: arranca en la PRIMERA interacción (los navegadores bloquean audio antes) ----------
+  const audioBar = $('#audioBar');
+  function syncAudioBar() {
+    const on = Music.isRunning();
+    audioBar.classList.toggle('hidden', on);
+    document.body.classList.toggle('has-audio-bar', !on);
+    refit();
+  }
+  function unlockAudio() {
+    Music.start(inGame() ? (game.state === 'kitchen' ? 'kitchen' : 'game') : 'title');
+    setTimeout(syncAudioBar, 120);
+  }
+  ['pointerdown', 'keydown', 'touchend'].forEach((ev) => window.addEventListener(ev, () => { if (!Music.isRunning()) unlockAudio(); }, { capture: true, passive: true }));
+  audioBar.addEventListener('click', () => { if (Music.isMuted()) toggleMute(); unlockAudio(); });
+  document.addEventListener('visibilitychange', () => { Music.setPaused(document.hidden); if (!document.hidden) setTimeout(syncAudioBar, 200); });
+  syncAudioBar();
 
   // Solo para pruebas locales: ?debug expone el estado
   if (/[?&]debug\b/.test(location.search)) window.__h = { game, startKitchen, nextLevel };
