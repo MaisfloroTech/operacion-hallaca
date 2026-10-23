@@ -99,10 +99,17 @@
 
         <!-- 3. Juego -->
         <div class="game-holder hidden" id="panel-game">
-          <canvas id="game" width="768" height="576" aria-label="Juego Rescata la Hallaca"></canvas>
-          <div class="kitchen hidden" id="kitchen">
-            <p class="k-step" id="kStep"></p>
-            <div class="k-opts" id="kOpts"></div>
+          <div class="stage" id="stage">
+            <canvas id="game" width="768" height="576" aria-label="Juego Rescata la Hallaca"></canvas>
+            <div class="kitchen hidden" id="kitchen" role="dialog" aria-labelledby="kStep">
+              <div class="k-card">
+                <p class="k-head" id="kHead">LA COCINA</p>
+                <p class="k-step" id="kStep"></p>
+                <p class="k-hint">Elige una opción:</p>
+                <div class="k-opts" id="kOpts"></div>
+                <p class="k-feedback" id="kFeedback" aria-live="polite"></p>
+              </div>
+            </div>
           </div>
         </div>
 

@@ -113,18 +113,38 @@ label.inline{max-width:280px; margin:14px auto 0; text-align:left}
 
 .game-holder{position:relative; display:flex; flex-direction:column; align-items:center}
 #game{display:block; width:100%; max-width:960px; height:auto; aspect-ratio: 4 / 3; margin:0 auto; image-rendering: pixelated; image-rendering: crisp-edges; background:#000; touch-action:none; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none}
-.kitchen{width:100%; padding:12px; background:#050816; border-top:4px solid var(--ink)}
 .cabinet.playing .screen{min-height:0}
+.stage{position:relative; margin:0 auto; line-height:0}
+.stage #game{margin:0}
+/* Cocina: tarjeta de opciones centrada sobre el juego */
+.kitchen{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; padding:4%;
+  background:#050816c4; line-height:1.2; z-index:2}
+.k-card{width:min(560px, 100%); max-height:100%; overflow:auto; background:#151c52; border:3px solid var(--ink);
+  box-shadow:0 0 0 3px var(--yellow), 6px 6px 0 3px var(--ink); padding:clamp(10px, 2.4vw, 18px); text-align:center}
+.k-head{margin:0; font-family:'Press Start 2P', monospace; font-size:clamp(8px, 1.4vw, 11px); color:var(--yellow); letter-spacing:.04em}
+.k-step{margin:6px 0 2px; font-size:clamp(20px, min(4.2vw, 6vh), 32px); color:var(--cream)}
+.k-hint{margin:0 0 8px; font-size:clamp(16px, min(2.8vw, 4vh), 22px); color:#b8a8ee}
+.k-opts{display:grid; gap:8px}
+.k-opt{display:flex; align-items:center; gap:10px; width:100%; text-align:left; cursor:pointer; border:0;
+  font-family:'VT323', monospace; font-size:clamp(18px, min(3.4vw, 5vh), 27px); line-height:1.1; color:var(--ink);
+  background:var(--cream); padding:clamp(6px, 1.4vh, 12px) 12px; min-height:46px;
+  box-shadow: inset -4px -4px 0 #cfc6ad, 4px 4px 0 var(--ink); transition:transform .05s}
+.k-opt:hover{background:#fff6d6}
+.k-opt:active{transform:translate(3px,3px)}
+.k-num{flex:none; display:inline-grid; place-items:center; width:1.5em; height:1.5em; background:var(--yellow); color:var(--ink);
+  font-family:'Press Start 2P', monospace; font-size:.55em; box-shadow:inset -2px -2px 0 #c79a00}
+.k-opt.bad{background:var(--red); color:#fff; box-shadow: inset -4px -4px 0 #8f0f1c}
+.k-opt.bad .k-num{background:#fff; color:var(--red)}
+.k-opt.good{background:var(--green); color:#fff; box-shadow: inset -4px -4px 0 #1b5e28}
+.k-opt:disabled{cursor:default}
+.k-feedback{min-height:1.2em; margin:8px 0 0; font-size:clamp(16px, min(2.8vw, 4vh), 22px); color:var(--yellow)}
+.k-feedback.bad{color:#ff8a96}
+.k-feedback.good{color:#9be37a}
 .cabinet.playing .pad{display:block}
 .cabinet:not(.show-pad) .pad{display:none !important}
 #juego{scroll-margin-top:18px}
 button{touch-action:manipulation}
 .rotate-hint{display:none; text-align:center; color:#b8a8ee; font-size:17px; margin:8px 0 0}
-.k-step{margin:0 0 10px; text-align:center; color:var(--yellow); font-size:22px}
-.k-opts{display:grid; grid-template-columns: repeat(3, 1fr); gap:8px}
-.k-opts .btn{font-size:10px; line-height:1.5; padding:12px 8px; white-space:normal}
-.k-opts .btn.bad{background:var(--red); color:#fff; box-shadow: inset -4px -4px 0 #8f0f1c}
-.k-opts .btn.good{background:var(--green); color:#fff; box-shadow: inset -4px -4px 0 #1b5e28}
 
 .score-big{font-size:36px; color:var(--yellow); margin:14px 0; text-shadow: 4px 4px 0 var(--red)}
 .follow{display:inline-block; margin-top:22px; font-size:22px}
@@ -153,10 +173,6 @@ button{touch-action:manipulation}
   .cabinet.playing .pad{position:absolute; left:max(10px, env(safe-area-inset-left)); bottom:14px; padding:0; z-index:3; pointer-events:none}
   .cabinet.playing .dpad{grid-template-columns:repeat(3, 54px); grid-template-rows:repeat(2, 50px); pointer-events:auto}
   .cabinet.playing .dpad button{background:#15183fcc}
-  .k-opts{grid-template-columns:repeat(3, 1fr)}
-  .k-step{font-size:19px; margin-bottom:6px}
-  .kitchen{padding:8px}
-  .k-opts .btn{padding:8px 6px; font-size:9px}
   .credit{font-size:15px; padding:2px 10px; bottom:calc(3px + env(safe-area-inset-bottom))}
   .audio-bar{font-size:17px; padding:4px 10px}
 }
@@ -185,10 +201,6 @@ button{touch-action:manipulation}
   .chars{grid-template-columns: repeat(2, 1fr)}
   .tios{grid-template-columns: repeat(2, 1fr)}
   .cards{grid-template-columns: 1fr}
-  .k-opts{grid-template-columns: 1fr; gap:6px}
-  .k-opts .btn{font-size:9px; padding:10px 8px}
-  .k-step{font-size:20px}
-  .kitchen{padding:8px}
   .cabinet-wrap{padding:28px 4px}
   .cabinet{padding:6px; border-width:3px; box-shadow: 0 0 0 3px #5b3fb0, 4px 4px 0 3px var(--ink)}
   .cabinet-top{padding:2px 2px 8px}

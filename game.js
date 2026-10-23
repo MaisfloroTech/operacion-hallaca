@@ -723,14 +723,22 @@
 
   function showStep() {
     const st = STEPS[game.kitchenStep];
-    $('#kStep').textContent = st.q;
+    const parts = st.q.split(' · ');
+    $('#kHead').textContent = 'LA COCINA · ' + parts[0] + ' DE ' + STEPS.length;
+    $('#kStep').textContent = parts[1] || st.q;
+    const fb = $('#kFeedback'); fb.textContent = ''; fb.className = 'k-feedback';
     const opts = $('#kOpts'); opts.innerHTML = '';
     shuffle([st.good].concat(st.bad)).forEach((label, i) => {
       const b = document.createElement('button');
-      b.type = 'button'; b.className = 'btn'; b.textContent = (i + 1) + '. ' + label; b.dataset.good = label === st.good ? '1' : '0';
+      b.type = 'button'; b.className = 'k-opt'; b.dataset.good = label === st.good ? '1' : '0';
+      const n = document.createElement('span'); n.className = 'k-num'; n.textContent = String(i + 1);
+      const t = document.createElement('span'); t.textContent = label;
+      b.append(n, t);
       b.addEventListener('click', () => answer(b));
       opts.appendChild(b);
     });
+    game.kmsg = null;
+    $('#kitchen').classList.remove('hidden');
     fit();
   }
 
@@ -740,17 +748,19 @@
     if (btn.dataset.good === '1') {
       btn.classList.add('good'); Music.sfx('good');
       game.score += game.kitchenTries === 0 ? 150 : 50;
-      game.kmsg = { name: 'TIP', line: st.tip, good: true };
+      game.kmsg = { name: '¡BIEN! TIP', line: st.tip, good: true };
       [...$('#kOpts').children].forEach((b) => { b.disabled = true; });
+      const fb = $('#kFeedback'); fb.textContent = '¡Así es! ' + st.tip; fb.className = 'k-feedback good';
+      // se quita la tarjeta un momento para ver cómo va quedando la hallaca
+      setTimeout(() => { $('#kitchen').classList.add('hidden'); game.kitchenStep++; game.kitchenTries = 0; }, 900);
       setTimeout(() => {
-        game.kitchenStep++; game.kitchenTries = 0;
         if (game.kitchenStep >= STEPS.length) finishGame();
-        else { showStep(); }
-      }, 1500);
+        else showStep();
+      }, 2500);
     } else {
       btn.classList.add('bad'); btn.disabled = true; Music.sfx('bad');
       game.kitchenTries++; game.score = Math.max(0, game.score - 25);
-      game.kmsg = { name: game.supervisor.name.toUpperCase(), line: pick(REGANOS), good: false };
+      const fb = $('#kFeedback'); fb.textContent = game.supervisor.name + ': ' + pick(REGANOS); fb.className = 'k-feedback bad';
     }
   }
 
@@ -839,7 +849,7 @@
     if (e.key === 'm' || e.key === 'M') toggleMute();
     if ((e.key === 'Enter' || e.key === ' ') && game.state === 'gameover') { e.preventDefault(); retry(); }
     if ((e.key === 'Enter' || e.key === ' ') && game.state === 'intro') { e.preventDefault(); game.state = 'play'; }
-    if (game.state === 'kitchen' && /^[1-3]$/.test(e.key)) { const b = $('#kOpts').children[Number(e.key) - 1]; if (b) b.click(); }
+    if (game.state === 'kitchen' && /^[1-3]$/.test(e.key) && !$('#kitchen').classList.contains('hidden')) { const b = $('#kOpts').children[Number(e.key) - 1]; if (b) b.click(); }
   });
   window.addEventListener('keyup', (e) => { const k = KEYMAP[e.key]; if (k) keys[k] = false; });
   window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
@@ -897,12 +907,12 @@
 
   // Ajusta el canvas al espacio REAL visible (visualViewport evita el bug de 100vh en iOS)
   function fit() {
-    if (!cabinet.classList.contains('playing')) { canvas.style.width = ''; return; }
+    if (!cabinet.classList.contains('playing')) { canvas.style.width = ''; $('#stage').style.width = ''; return; }
     const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
     const holder = $('#panel-game');
     const pad = $('#pad'); const ps = getComputedStyle(pad);
     const padH = ps.display !== 'none' && ps.position !== 'absolute' ? pad.offsetHeight : 0;
-    const kit = $('#kitchen'); const kitH = kit.classList.contains('hidden') ? 0 : kit.offsetHeight;
+    const kitH = 0; // la tarjeta de cocina va encima del canvas
     canvas.style.width = '10px';
     const chrome = cabinet.offsetHeight - holder.offsetHeight - padH;
     const credit = $('#credit'); const creditH = credit ? credit.offsetHeight + 10 : 0;
@@ -910,6 +920,7 @@
     const avail = vh - 18 - barH - chrome - padH - kitH - creditH - 4;
     const w = Math.max(200, Math.min(holder.clientWidth, (avail * 4) / 3, 960));
     canvas.style.width = Math.floor(w) + 'px';
+    $('#stage').style.width = Math.floor(w) + 'px';
     const ppl = w / W;
     FS_BUMP = ppl < 1.55 ? 2 : ppl < 2.2 ? 1 : 0;
   }
@@ -1024,7 +1035,8 @@
 
   $('#againBtn').addEventListener('click', () => goSetup());
   $('#shareBtn').addEventListener('click', async () => {
-    const url = location.origin + location.pathname;
+    // Dominio oficial para compartir (aunque estés jugando en el .vercel.app)
+    const url = 'https://operacion-hallaca.maisfloro.com/';
     const t = '¡Rescaté la cena de Navidad con ' + game.score + ' puntos en ¡Rescata la Hallaca! ¿Me superas?';
     if (navigator.share) { try { await navigator.share({ title: '¡Rescata la Hallaca!', text: t, url }); return; } catch (e) { /* cancelado */ } }
     window.open('https://wa.me/?text=' + encodeURIComponent(t + ' ' + url), '_blank', 'noopener');
