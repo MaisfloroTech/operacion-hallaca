@@ -186,9 +186,9 @@
 
   // ---------- Niveles ----------
   const LEVELS = [
-    { title: 'EL MERCADO', sub: 'Nivel 1', items: ['hoja', 'alinos', 'pimenton', 'onoto'], time: 85, tios: 2, kids: 2, braid: 0.34, theme: 'mercado' },
-    { title: 'LA CARNICERÍA', sub: 'Nivel 2', items: ['res', 'cochino', 'gallina'], time: 80, tios: 3, kids: 2, braid: 0.24, theme: 'carniceria' },
-    { title: 'EL ABASTO', sub: 'Nivel 3', items: ['harina', 'aceitunas', 'pasas', 'alcaparras', 'pabilo'], time: 100, tios: 3, kids: 3, braid: 0.16, theme: 'abasto' },
+    { title: 'EL MERCADO', sub: 'Nivel 1', items: ['hoja', 'alinos', 'pimenton', 'onoto'], time: 85, tios: 2, kids: 2, braid: 0.75, theme: 'mercado' },
+    { title: 'LA CARNICERÍA', sub: 'Nivel 2', items: ['res', 'cochino', 'gallina'], time: 80, tios: 2, kids: 2, braid: 0.65, theme: 'carniceria' },
+    { title: 'EL ABASTO', sub: 'Nivel 3', items: ['harina', 'aceitunas', 'pasas', 'alcaparras', 'pabilo'], time: 100, tios: 3, kids: 3, braid: 0.55, theme: 'abasto' },
   ];
   const DATA = window.HALLACA_DATA || { MAMI: ['¡Un abrazo!'], PAPI: ['¡Un abrazo!'], KIDS: ['¡Juguemos!'], KID_NAMES: ['Santi'], COUNTRY: {} };
 
@@ -298,6 +298,15 @@
     for (let cy = 0; cy < CH; cy++) for (let cx = 0; cx < CW; cx++) {
       if (cx < CW - 1 && rnd() < braid) link(cx, cy, cx + 1, cy);
       if (cy < CH - 1 && rnd() < braid) link(cx, cy, cx, cy + 1);
+    }
+    // Sin callejones: toda celda con una sola salida recibe otra
+    const opened = (ax, ay, bx, by) => (ay === by ? m[1 + 3 * ay][3 + 3 * Math.min(ax, bx)] : m[3 + 3 * Math.min(ay, by)][1 + 3 * ax]) === 0;
+    for (let cy = 0; cy < CH; cy++) for (let cx = 0; cx < CW; cx++) {
+      const nbs = [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dy]) => [cx + dx, cy + dy]).filter(([x, y]) => x >= 0 && y >= 0 && x < CW && y < CH);
+      if (nbs.filter(([x, y]) => opened(cx, cy, x, y)).length <= 1) {
+        const closed = nbs.filter(([x, y]) => !opened(cx, cy, x, y));
+        if (closed.length) { const [x, y] = pick(closed); link(cx, cy, x, y); }
+      }
     }
     return m;
   }
@@ -437,8 +446,8 @@
       const [ax, ay] = anchor(c[0], c[1]);
       game.npcs.push({ kind, rel, x: ax, y: ay, speed, dx: 0, dy: 0, anim: 0, face: 1, cool: 3, goal: [c[0], c[1]], prev: null, mode: 'wander', modeT: 1 + rnd() * 2 });
     };
-    for (let k = 0; k < L.tios; k++) mk('tio', game.relatives[(i * 2 + k) % game.relatives.length], freeCell(4), 36);
-    if (game.visitor) mk('pais', game.visitor, freeCell(4), 32);
+    for (let k = 0; k < L.tios; k++) mk('tio', game.relatives[(i * 2 + k) % game.relatives.length], freeCell(4), 24);
+    if (game.visitor) mk('pais', game.visitor, freeCell(4), 22);
     for (let k = 0; k < L.kids; k++) mk('kid', makeKid(), freeCell(2), 60);
     mk('mami', MAMI_REL, freeCell(3), 24);
     mk('papi', PAPI_REL, freeCell(3), 24);
@@ -458,8 +467,8 @@
     o.dx = Math.sign(mx); o.dy = Math.sign(my);
     return Math.abs(tx - o.x) <= 0.5 && Math.abs(ty - o.y) <= 0.5;
   }
-  // IA: tíos y visitante persiguen por el camino más corto (con pausas cortas),
-  // mami y papi vienen a buscarte despacito, los primitos corren al azar.
+  // IA: tíos, visitante y primitos pasean tranquilos por el laberinto (no persiguen);
+  // solo mami y papi vienen a buscarte, despacito, para darte el abrazo.
   function npcStep(n, dt) {
     const p = game.player, s = n.speed * dt;
     if (n.cool > 0) n.cool -= dt;
@@ -467,7 +476,7 @@
     if (n.modeT <= 0) {
       if (n.kind === 'kid') { n.mode = 'wander'; n.modeT = 99; }
       else if (n.kind === 'mami' || n.kind === 'papi') { n.mode = 'chase'; n.modeT = 99; }
-      else { n.mode = n.mode === 'chase' ? 'wander' : 'chase'; n.modeT = n.mode === 'chase' ? 7 + rnd() * 4 : 0.8 + rnd(); }
+      else { n.mode = 'wander'; n.modeT = 99; }
     }
     const here = cellOf(n), pc = cellOf(p);
     if (n.mode === 'chase' && here[0] === pc[0] && here[1] === pc[1]) { moveToward(n, p.x, p.y, s); n.goal = null; }
@@ -493,16 +502,16 @@
   function meet(n) {
     const p = game.player;
     if (n.kind === 'tio') {
-      n.cool = 5; n.mode = 'wander'; n.modeT = 3;
-      if (rnd() < 0.18) { game.timeLeft += 6; Music.sfx('gift'); setDialog(n.rel.name, pick(REGALOS), 2.2, { gift: true }); }
-      else { p.stun = 2.2; game.chismes++; Music.sfx('bump'); game.flash = 0.15; setDialog(n.rel.name, pick(CHISMES), 2.4); }
+      n.cool = 9; n.mode = 'wander'; n.modeT = 99;
+      if (rnd() < 0.25) { game.timeLeft += 6; Music.sfx('gift'); setDialog(n.rel.name, pick(REGALOS), 2.2, { gift: true }); }
+      else { p.stun = 1.4; game.chismes++; Music.sfx('bump'); game.flash = 0.15; setDialog(n.rel.name, pick(CHISMES), 2.4); }
     } else if (n.kind === 'pais') {
-      n.cool = 6; n.mode = 'wander'; n.modeT = 3;
+      n.cool = 10; n.mode = 'wander'; n.modeT = 99;
       const ln = pick(n.rel.lines);
-      p.stun = 1.8; game.visits++; Music.sfx('select');
+      p.stun = 1.2; game.visits++; Music.sfx('select');
       setDialog(n.rel.name + ' (' + n.rel.country + ')', ln.t, 3.6, { kind: 'pais', sub: ln.es });
     } else if (n.kind === 'kid') {
-      n.cool = 4; p.stun = 0.9; Music.sfx('bump');
+      n.cool = 6; p.stun = 0.6; Music.sfx('bump');
       setDialog(n.rel.name, pick(DATA.KIDS), 1.6, { kind: 'kid' });
       n.mode = 'wander'; n.goal = null;
     } else {
@@ -572,7 +581,7 @@
       npcStep(n, dt);
       if (n.kind === 'tio' || n.kind === 'pais') {
         const d = Math.hypot(p.x - n.x, p.y - n.y);
-        n.danger = n.cool <= 0 && (d < 44 || (n.mode === 'chase' && d < 72));
+        n.danger = n.cool <= 0 && d < 36;
         if (n.danger && !n.warned) { n.warned = true; Music.sfx('select'); }
         if (!n.danger) n.warned = false;
       } else if (n.kind === 'mami' || n.kind === 'papi') {
