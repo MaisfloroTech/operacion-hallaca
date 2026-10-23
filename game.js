@@ -192,9 +192,9 @@
 
   // ---------- Niveles ----------
   const LEVELS = [
-    { title: 'EL MERCADO', sub: 'Nivel 1', items: ['hoja', 'alinos', 'pimenton', 'onoto'], time: 85, tios: 2, kids: 1, braid: 0.75, theme: 'mercado' },
-    { title: 'LA CARNICERÍA', sub: 'Nivel 2', items: ['res', 'cochino', 'gallina'], time: 80, tios: 2, kids: 1, braid: 0.65, theme: 'carniceria' },
-    { title: 'EL ABASTO', sub: 'Nivel 3', items: ['harina', 'aceitunas', 'pasas', 'alcaparras', 'pabilo'], time: 100, tios: 2, kids: 1, braid: 0.55, theme: 'abasto' },
+    { title: 'EL MERCADO', sub: 'Nivel 1', items: ['hoja', 'alinos', 'pimenton', 'onoto'], time: 60, tios: 2, kids: 1, braid: 0.75, theme: 'mercado' },
+    { title: 'LA CARNICERÍA', sub: 'Nivel 2', items: ['res', 'cochino', 'gallina'], time: 60, tios: 2, kids: 1, braid: 0.65, theme: 'carniceria' },
+    { title: 'EL ABASTO', sub: 'Nivel 3', items: ['harina', 'aceitunas', 'pasas', 'alcaparras', 'pabilo'], time: 60, tios: 2, kids: 1, braid: 0.55, theme: 'abasto' },
   ];
   const DATA = window.HALLACA_DATA || { MAMI: ['¡Un abrazo!'], PAPI: ['¡Un abrazo!'], KIDS: ['¡Juguemos!'], KID_NAMES: ['Santi'], COUNTRY: {} };
 
@@ -508,7 +508,9 @@
   }
   // Chocar con un tío, el visitante o el primo: se te cae un ingrediente (reaparece en otro puesto)
   // y sale un mensaje en pantalla que congela el juego hasta darle OK.
-  function punish(name, line, sub, kind) {
+  function punish(name, line, sub, kind, secs) {
+    secs = secs || 0;
+    if (secs) game.timeLeft = Math.max(1, game.timeLeft - secs); // nunca te mata en el acto: te deja 1 s para reaccionar
     const got = game.items.filter((it) => it.got);
     let lost = null;
     if (got.length) {
@@ -526,9 +528,10 @@
     game.msg = null; game.toast = null; game.flash = 0.15;
     clearDir(); drag = null;
     Music.sfx('bump');
-    openPopup(kind, name, line, sub, lost
+    const tLost = secs ? ' Y te quitó ' + secs + ' segundos.' : '';
+    openPopup(kind, name, line, sub, (lost
       ? 'Por andar echando cuento se te cayó: ' + ING[lost.id].name + ' (−100). Ya volvió a otro puesto, ¡búscalo!'
-      : 'Por suerte todavía no llevabas ningún ingrediente.', !!lost);
+      : 'Por suerte todavía no llevabas ningún ingrediente.') + tLost, !!lost || !!secs);
   }
   function openPopup(kind, name, line, sub, loss, lostSomething) {
     game.modal = true;
@@ -557,22 +560,22 @@
     if (n.kind === 'tio') {
       n.cool = 9; n.mode = 'wander'; n.modeT = 99;
       game.chismes++;
-      punish(n.rel.name, pick(CHISMES), '', 'tio');
+      punish(n.rel.name, pick(CHISMES), '', 'tio', 10);
     } else if (n.kind === 'pais') {
       n.cool = 10; n.mode = 'wander'; n.modeT = 99;
       const ln = pick(n.rel.lines);
       game.visits++;
-      punish(n.rel.name + ' (' + n.rel.country + ')', ln.t, ln.es || '', 'pais');
+      punish(n.rel.name + ' (' + n.rel.country + ')', ln.t, ln.es || '', 'pais', 10);
     } else if (n.kind === 'kid') {
       n.cool = 8; n.mode = 'wander'; n.goal = null;
       punish(n.rel.name, pick(DATA.KIDS), '', 'kid');
     } else {
       n.cool = 11; n.mode = 'wander'; n.modeT = 6;
       // abrazo = escudo de cariño: no te frena y nadie te para mientras dura
-      p.hug = 2.5; game.timeLeft += 5; game.hugs++; Music.sfx('gift');
+      p.hug = 2.5; game.timeLeft += 3; game.hugs++; Music.sfx('gift');
       hearts(p.x + 2, p.y, 18); hearts(n.x + 2, n.y - 2, 8);
       const lines = n.kind === 'mami' ? DATA.MAMI : DATA.PAPI;
-      setDialog(n.rel.name, pick(lines) + ' +5s', 3.2, { kind: 'love', icon: 'arepa' });
+      setDialog(n.rel.name, pick(lines) + ' +3s', 3.2, { kind: 'love', icon: 'arepa' });
     }
   }
   function update(dt) {
@@ -760,7 +763,7 @@
         ctx.drawImage(ICONS[id].img, W / 2 - 60, y - 2);
         text(ING[id].name, W / 2 - 46, y, { size: 6 });
       });
-      text('Busca a mami y papi: abrazo, arepita y +5s', W / 2, H - 34, { size: 5, align: 'center', color: '#ff9ec4' });
+      text('Mami y papi: abrazo y +3s · Cada tío: -10s', W / 2, H - 34, { size: 5, align: 'center', color: '#ff9ec4' });
       text('¡CUIDADO CON LOS TÍOS!', W / 2, H - 22, { size: 6, align: 'center', color: Math.floor(game.t * 3) % 2 ? '#e8283a' : '#f4efe1' });
     }
     if (game.state === 'levelDone') {
@@ -1008,7 +1011,7 @@
       const left = (game.items || []).filter((it) => !it.got).map((it) => ING[it.id].name);
       name = game.state === 'intro' ? '¡PREPÁRATE!' : 'TE FALTA';
       textTxt = left.length ? left.join(' · ') : '¡Ya tienes todo!';
-      sub = game.state === 'intro' ? 'Mami y papi dan abrazos (+tiempo). Los tíos solo quieren conversar.' : '';
+      sub = game.state === 'intro' ? 'Abrazo de mami o papi: +3 s. Chocar con un tío: −10 s y se te cae un ingrediente.' : '';
     }
     const key = kind + '|' + name + '|' + textTxt + '|' + sub;
     if (key === mbKey) return;
