@@ -1,0 +1,13 @@
+{
+  "name": "rescata-la-hallaca",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Juego 8-bit para aprender a hacer hallacas venezolanas. Hecho con ❤️ por @maisfloro.tech",
+  "dependencies": {
+    "@vercel/blob": "^2.8.2"
+  },
+  "engines": {
+    "node": "22.x"
+  }
+}

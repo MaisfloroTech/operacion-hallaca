@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>¡Rescata la Hallaca! · Juego 8-bit navideño</title>
+<meta name="description" content="Un juego 8-bit para salvar la cena de Navidad: consigue los ingredientes, esquiva el chisme de los tíos y arma la hallaca venezolana paso a paso.">
+<meta property="og:title" content="¡Rescata la Hallaca! 🎄 Juego 8-bit">
+<meta property="og:description" content="Salva la cena de Navidad: consigue los ingredientes, esquiva a los tíos y aprende a hacer hallacas.">
+<meta name="theme-color" content="#0b1033">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'><rect width='8' height='8' fill='%231f7a3a'/><rect x='1' y='1' width='6' height='6' fill='%233fae5a'/><rect x='3' y='0' width='2' height='8' fill='%23f4efe1'/><rect x='0' y='3' width='8' height='2' fill='%23f4efe1'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="lights" aria-hidden="true"></div>
+
+<header class="hero">
+  <p class="eyebrow">★ ★ ★ ★ ★ ★ ★ ★</p>
+  <h1><span>¡RESCATA</span><span>LA HALLACA!</span></h1>
+  <p class="tagline">Son las 6 de la tarde del 24. Falta todo. La tía ya llegó.<br>Consigue los ingredientes, esquiva el chisme y arma la hallaca antes de la cena.</p>
+  <a class="btn btn-big" href="#juego">▶ PRESS START</a>
+  <ul class="hero-facts">
+    <li><b>3</b> niveles</li>
+    <li><b>12</b> ingredientes</li>
+    <li><b>8</b> pasos de la receta</li>
+    <li><b>∞</b> tíos preguntando cosas</li>
+  </ul>
+</header>
+
+<main>
+  <section id="juego" class="cabinet-wrap">
+    <div class="cabinet">
+      <div class="cabinet-top">
+        <span class="dot r"></span><span class="dot y"></span><span class="dot b"></span>
+        <span class="cab-title">HALLACA-BOY 2026</span>
+        <button id="muteBtn" class="mini" type="button" aria-label="Silenciar música">♪ ON</button>
+      </div>
+
+      <div class="screen" id="screen">
+        <!-- 1. Registro -->
+        <div class="panel" id="panel-register">
+          <h2>INSERT COIN</h2>
+          <p class="small">Para jugar solo necesito tres cositas.</p>
+          <form id="regForm" novalidate>
+            <label>Tu nombre
+              <input name="name" maxlength="60" autocomplete="given-name" required placeholder="Ej: Isa">
+            </label>
+            <label>Tu correo
+              <input name="email" type="email" maxlength="120" autocomplete="email" required placeholder="tu@correo.com">
+            </label>
+            <label>Tu país
+              <select name="country" required>
+                <option value="">— Escoge —</option>
+                <option>Venezuela</option><option>Colombia</option><option>Chile</option>
+                <option>Argentina</option><option>Perú</option><option>Ecuador</option>
+                <option>México</option><option>Panamá</option><option>República Dominicana</option>
+                <option>Costa Rica</option><option>Uruguay</option><option>Bolivia</option>
+                <option>Paraguay</option><option>Guatemala</option><option>Honduras</option>
+                <option>El Salvador</option><option>Nicaragua</option><option>Cuba</option>
+                <option>Puerto Rico</option><option>España</option><option>Estados Unidos</option>
+                <option>Canadá</option><option>Portugal</option><option>Italia</option>
+                <option>Alemania</option><option>Francia</option><option>Reino Unido</option>
+                <option>Otro</option>
+              </select>
+            </label>
+            <label class="hp" aria-hidden="true">Website <input name="website" tabindex="-1" autocomplete="off"></label>
+            <label class="check">
+              <input type="checkbox" name="consent" required>
+              <span id="consentText">Acepto que @maisfloro.tech guarde mi nombre, correo y país para escribirme sobre contenido, talleres y productos. Puedo pedir que me borren cuando quiera.</span>
+            </label>
+            <button class="btn" type="submit" id="regBtn">▶ ENTRAR A JUGAR</button>
+            <p class="form-msg" id="regMsg" role="status"></p>
+            <p class="tiny"><a href="#privacidad">¿Qué hago con tus datos?</a></p>
+          </form>
+        </div>
+
+        <!-- 2. Selección -->
+        <div class="panel hidden" id="panel-setup">
+          <h2>ESCOGE TU PERSONAJE</h2>
+          <div class="chars" id="chars" role="radiogroup" aria-label="Personajes"></div>
+          <label class="inline">Nombre del héroe
+            <input id="heroName" maxlength="12" placeholder="Tu nombre">
+          </label>
+          <h3>LOS TÍOS DE ESTE AÑO</h3>
+          <p class="small">Ponles los nombres de tu familia (o deja que el destino decida).</p>
+          <div class="tios" id="tios"></div>
+          <div class="row">
+            <button class="btn ghost" type="button" id="randTios">🎲 Tíos aleatorios</button>
+            <button class="btn" type="button" id="startBtn">▶ JUGAR</button>
+          </div>
+        </div>
+
+        <!-- 3. Juego -->
+        <div class="game-holder hidden" id="panel-game">
+          <canvas id="game" width="768" height="576" aria-label="Juego Rescata la Hallaca"></canvas>
+          <div class="kitchen hidden" id="kitchen">
+            <p class="k-step" id="kStep"></p>
+            <div class="k-opts" id="kOpts"></div>
+          </div>
+        </div>
+
+        <!-- 4. Fin -->
+        <div class="panel hidden" id="panel-end">
+          <h2 id="endTitle">¡SALVASTE LA NAVIDAD!</h2>
+          <p class="score-big" id="endScore">0</p>
+          <p class="small" id="endText"></p>
+          <div class="row">
+            <button class="btn" type="button" id="againBtn">↻ JUGAR OTRA VEZ</button>
+            <button class="btn ghost" type="button" id="shareBtn">↗ RETAR A UN PANA</button>
+          </div>
+          <a class="follow" href="https://www.instagram.com/maisfloro.tech/" target="_blank" rel="noopener">Sígueme en @maisfloro.tech para más</a>
+        </div>
+      </div>
+
+      <div class="pad" id="pad" aria-hidden="true">
+        <div class="dpad">
+          <button data-k="up">▲</button>
+          <button data-k="left">◀</button>
+          <button data-k="right">▶</button>
+          <button data-k="down">▼</button>
+        </div>
+        <p class="pad-help">Flechas / WASD para moverte · P pausa · M música</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="receta" class="recipe">
+    <h2>LA RECETA DE VERDAD</h2>
+    <p class="lead">El juego es la versión loca. Esta es la versión de la cocina. Rinde unas 25 hallacas y, como manda la tradición, se hace en familia, con gaita sonando y alguien opinando que así no era.</p>
+
+    <div class="cards">
+      <article class="card">
+        <h3>1 · EL GUISO <small>(el día antes)</small></h3>
+        <ul>
+          <li>1 kg de carne de res, 1 kg de cochino y 1 gallina (o pechugas), en cuadritos.</li>
+          <li>Aliños bien picados: cebolla, ajoporro, cebollín, ají dulce, pimentón y ajo.</li>
+          <li>Sofríe los aliños con aceite onotado, suma las carnes y cocina a fuego lento.</li>
+          <li>Ajusta con vino dulce, un toque de papelón, mostaza, salsa inglesa, sal y pimienta.</li>
+          <li>Que quede jugoso, no aguado. Déjalo reposar en la nevera toda la noche.</li>
+        </ul>
+      </article>
+      <article class="card">
+        <h3>2 · LAS HOJAS</h3>
+        <ul>
+          <li>Lava las hojas de plátano con un paño húmedo, por ambos lados.</li>
+          <li>Pásalas rápido por la llama o agua caliente para que se pongan flexibles.</li>
+          <li>Corta rectángulos de unos 30×40 cm para la hoja principal y tiras para la faja.</li>
+        </ul>
+      </article>
+      <article class="card">
+        <h3>3 · LA MASA</h3>
+        <ul>
+          <li>Harina de maíz precocida con caldo de las carnes (no agua: caldo).</li>
+          <li>Aceite onotado hasta que tenga ese amarillo-naranja bonito, y sal.</li>
+          <li>Amasa hasta que esté suave y no se agriete. Si se agrieta, más caldo.</li>
+        </ul>
+      </article>
+      <article class="card">
+        <h3>4 · LOS ADORNOS</h3>
+        <ul>
+          <li>Aceitunas, pasas, alcaparras, tiras de pimentón y ruedas de cebolla.</li>
+          <li>Algunas familias le ponen huevo duro o almendras. Ninguna está equivocada (todas lo están, según la otra).</li>
+        </ul>
+      </article>
+      <article class="card wide">
+        <h3>5 · EL ARMADO</h3>
+        <ol>
+          <li>Unta la hoja con aceite onotado.</li>
+          <li>Pon una bola de masa y aplástala bien finita, casi transparente.</li>
+          <li>Sirve el guiso en el centro, frío.</li>
+          <li>Adorna: aceituna, pasas, alcaparras, pimentón, cebolla.</li>
+          <li>Dobla la hoja para que la masa cierre sobre el guiso, como un sobre.</li>
+          <li>Envuélvela con la faja (la hoja de afuera).</li>
+          <li>Amarra con pabilo: tres vueltas a lo largo, tres a lo ancho.</li>
+          <li>Hierve en agua con sal durante una hora, aproximadamente. Escurre y deja reposar.</li>
+        </ol>
+        <p class="tip">Tip de tía: se congelan perfecto, y recalentadas el 25 al desayuno saben mejor que el 24.</p>
+      </article>
+    </div>
+  </section>
+
+  <section id="privacidad" class="privacy">
+    <h2>TUS DATOS, CLARITO</h2>
+    <p>Para jugar te pido nombre, correo y país. Solo los uso para escribirte sobre contenido, talleres y productos de @maisfloro.tech. No los vendo ni los comparto. Si quieres que te borre, escríbeme por Instagram a <a href="https://www.instagram.com/maisfloro.tech/" target="_blank" rel="noopener">@maisfloro.tech</a> y listo. El juego en sí corre completo en tu navegador: los nombres de los tíos y tu puntaje no salen de tu dispositivo.</p>
+  </section>
+</main>
+
+<footer class="footer">
+  <p>Hecho con <span class="heart">❤️</span> por <a href="https://www.instagram.com/maisfloro.tech/" target="_blank" rel="noopener">@maisfloro.tech</a></p>
+  <p class="tiny">Música chiptune original en ritmo de gaita · Pixel art hecho a mano en código · <a href="https://www.maisfloro.com/" target="_blank" rel="noopener">maisfloro.com</a></p>
+</footer>
+
+<script src="music.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
