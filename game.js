@@ -508,7 +508,7 @@
     } else {
       n.cool = 11; n.mode = 'wander'; n.modeT = 6;
       p.hug = 1.5; game.timeLeft += 5; game.hugs++; Music.sfx('gift');
-      hearts(p.x + 2, p.y, 10);
+      hearts(p.x + 2, p.y, 18); hearts(n.x + 2, n.y - 2, 8);
       const lines = n.kind === 'mami' ? DATA.MAMI : DATA.PAPI;
       setDialog(n.rel.name, pick(lines) + ' +5s', 3.2, { kind: 'love', icon: 'arepa' });
     }
@@ -570,6 +570,15 @@
     }
     for (const n of game.npcs) {
       npcStep(n, dt);
+      if (n.kind === 'tio' || n.kind === 'pais') {
+        const d = Math.hypot(p.x - n.x, p.y - n.y);
+        n.danger = n.cool <= 0 && (d < 44 || (n.mode === 'chase' && d < 72));
+        if (n.danger && !n.warned) { n.warned = true; Music.sfx('select'); }
+        if (!n.danger) n.warned = false;
+      } else if (n.kind === 'mami' || n.kind === 'papi') {
+        n.heartT = (n.heartT || 0) - dt;
+        if (n.heartT <= 0) { n.heartT = 0.45 + rnd() * 0.4; hearts(n.x + 3, n.y - 4, 1); }
+      }
       if (n.cool <= 0 && p.stun <= 0 && p.hug <= 0 && Math.abs(p.x - n.x) < 11 && Math.abs(p.y - n.y) < 11) meet(n);
     }
   }
@@ -611,15 +620,33 @@
     } });
     const LABEL = { tio: '#ffcc00', pais: '#7fe3ff', kid: '#9be37a', mami: '#ff9ec4', papi: '#ff9ec4' };
     for (const n of game.npcs) ents.push({ y: n.y + 6, draw: () => {
-      shadow(n.x, n.y);
+      const parent = n.kind === 'mami' || n.kind === 'papi';
       const fr = n.rel.frames[Math.floor(n.anim * (n.kind === 'kid' ? 10 : 6)) % 2];
-      if (n.kind === 'kid') drawSprite(fr, n.x + 2, n.y + 4, n.face < 0); else drawSprite(fr, n.x, n.y, n.face < 0);
+      let top = Math.round(n.y) + (n.kind === 'kid' ? 4 : 0);
+      if (parent) { // mami y papi: más grandes que el resto (x1.35)
+        const k = 1.35, w2 = Math.round(fr.width * k), h2 = Math.round(fr.height * k);
+        const x0 = Math.round(n.x + 8 - w2 / 2), y0 = Math.round(n.y + 16 - h2 + 1);
+        ctx.fillStyle = '#00000040'; ctx.fillRect(x0 + 3, Math.round(n.y) + 13, w2 - 6, 4);
+        ctx.fillStyle = '#ff4f7a33'; ctx.fillRect(x0 - 1, y0 + h2 - 3, w2 + 2, 3);
+        if (n.face < 0) { ctx.save(); ctx.translate(x0 + w2, y0); ctx.scale(-1, 1); ctx.drawImage(fr, 0, 0, w2, h2); ctx.restore(); }
+        else ctx.drawImage(fr, x0, y0, w2, h2);
+        top = y0 + 1;
+      } else {
+        shadow(n.x, n.y);
+        if (n.kind === 'kid') drawSprite(fr, n.x + 2, n.y + 4, n.face < 0); else drawSprite(fr, n.x, n.y, n.face < 0);
+      }
       ctx.font = FONT(5); const w = ctx.measureText(n.rel.name).width; const lh = LH(5) - 1;
-      const ty = Math.max(TOP + lh + 1, Math.round(n.y) + (n.kind === 'kid' ? 4 : 0));
+      const ty = Math.max(TOP + lh + 1, top);
+      if ((n.kind === 'tio' || n.kind === 'pais') && n.danger) { // ¡peligro! te tiene en la mira
+        const bx = Math.round(n.x + 13), by = ty - lh - 11 + (Math.floor(game.t * 8) % 2);
+        ctx.fillStyle = '#120a1e'; ctx.fillRect(bx - 1, by - 1, 7, 11);
+        ctx.fillStyle = Math.floor(game.t * 6) % 2 ? '#ffcc00' : '#e8283a'; ctx.fillRect(bx, by, 5, 9);
+        ctx.fillStyle = '#120a1e'; ctx.fillRect(bx + 2, by + 1, 1, 4); ctx.fillRect(bx + 2, by + 7, 1, 1);
+      }
       const lx = Math.round(Math.max(w / 2 + 3, Math.min(W - w / 2 - 3, n.x + 8)));
       ctx.fillStyle = '#120a1ecc'; ctx.fillRect(Math.round(lx - w / 2) - 2, ty - lh - 1, w + 4, lh);
       text(n.rel.name, lx, ty - lh, { size: 5, align: 'center', color: LABEL[n.kind], shadow: false });
-      if ((n.kind === 'mami' || n.kind === 'papi') && n.cool <= 0) drawHeart(Math.round(n.x + 6), ty - lh - 7 + Math.round(Math.sin(game.t * 5)), '#ff4f7a');
+      if (parent) drawHeart(Math.round(n.x + 6), ty - lh - 7 + Math.round(Math.sin(game.t * 5)), '#ff4f7a');
     } });
     const p = game.player;
     ents.push({ y: p.y + 6, draw: () => {
