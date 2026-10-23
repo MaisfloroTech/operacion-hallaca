@@ -431,10 +431,11 @@
     game.levelIdx = i;
     game.map = genMap(L.braid); game.bg = renderMap(game.map, L.theme);
     game.items = []; game.particles = [];
-    game.player = { x: T, y: TOP + 19 * T - 11, dir: 1, anim: 0, stun: 0, hug: 0 };
+    game.player = { x: T, y: TOP + 19 * T - 11, dir: 1, anim: 0, stun: 0, hug: 0, grace: 0 };
     const { dist } = bfs([0, CH - 1]);
     const cells = [];
     for (let cy = 0; cy < CH; cy++) for (let cx = 0; cx < CW; cx++) cells.push([cx, cy, dist[cy][cx]]);
+    game.cells = cells;
     const far = cells.filter((c) => c[2] >= 5);
     const chosen = [];
     for (const id of L.items) {
@@ -505,24 +506,70 @@
   function hearts(x, y, k) {
     for (let i = 0; i < k; i++) game.particles.push({ x: x + rnd() * 12 - 2, y: y + rnd() * 6, vx: (rnd() - 0.5) * 18, vy: -18 - rnd() * 22, t: 1.1 + rnd() * 0.6 });
   }
+  // Chocar con un tío, el visitante o el primo: se te cae un ingrediente (reaparece en otro puesto)
+  // y sale un mensaje en pantalla que congela el juego hasta darle OK.
+  function punish(name, line, sub, kind) {
+    const got = game.items.filter((it) => it.got);
+    let lost = null;
+    if (got.length) {
+      lost = pick(got);
+      lost.got = false;
+      const pc = cellOf(game.player);
+      const { dist } = bfs(pc);
+      const taken = new Set(game.items.filter((it) => !it.got && it !== lost).map((it) => Math.floor(it.x / 24) + ',' + Math.floor((it.y - TOP) / 24)));
+      const opts = (game.cells || []).filter((c) => dist[c[1]][c[0]] >= 3 && !taken.has(c[0] + ',' + c[1]));
+      const c = opts.length ? pick(opts) : pick(game.cells);
+      lost.x = (1 + 3 * c[0]) * T + 4; lost.y = TOP + (1 + 3 * c[1]) * T + 4;
+      game.score = Math.max(0, game.score - 100);
+      game.lost = (game.lost || 0) + 1;
+    }
+    game.msg = null; game.toast = null; game.flash = 0.15;
+    clearDir(); drag = null;
+    Music.sfx('bump');
+    openPopup(kind, name, line, sub, lost
+      ? 'Por andar echando cuento se te cayó: ' + ING[lost.id].name + ' (−100). Ya volvió a otro puesto, ¡búscalo!'
+      : 'Por suerte todavía no llevabas ningún ingrediente.', !!lost);
+  }
+  function openPopup(kind, name, line, sub, loss, lostSomething) {
+    game.modal = true;
+    const pp = $('#popup');
+    pp.dataset.kind = kind;
+    $('#ppName').textContent = name.toUpperCase();
+    $('#ppText').textContent = line;
+    $('#ppSub').textContent = sub || '';
+    $('#ppSub').hidden = !sub;
+    $('#ppLoss').textContent = loss;
+    $('#ppLoss').classList.toggle('ok', !lostSomething);
+    pp.classList.remove('hidden');
+    setTimeout(() => { try { $('#ppOk').focus({ preventScroll: true }); } catch (e) { } }, 30);
+  }
+  function closePopup() {
+    if (!game.modal) return;
+    game.modal = false;
+    $('#popup').classList.add('hidden');
+    clearDir();
+    game.player.grace = 1.5; // tiempo para alejarse sin que te vuelvan a atrapar
+    Music.sfx('select');
+  }
+
   function meet(n) {
     const p = game.player;
     if (n.kind === 'tio') {
       n.cool = 9; n.mode = 'wander'; n.modeT = 99;
-      if (rnd() < 0.25) { game.timeLeft += 6; Music.sfx('gift'); setDialog(n.rel.name, pick(REGALOS), 2.2, { gift: true }); }
-      else { p.stun = 1.4; game.chismes++; Music.sfx('bump'); game.flash = 0.15; setDialog(n.rel.name, pick(CHISMES), 2.4); }
+      game.chismes++;
+      punish(n.rel.name, pick(CHISMES), '', 'tio');
     } else if (n.kind === 'pais') {
       n.cool = 10; n.mode = 'wander'; n.modeT = 99;
       const ln = pick(n.rel.lines);
-      p.stun = 1.2; game.visits++; Music.sfx('select');
-      setDialog(n.rel.name + ' (' + n.rel.country + ')', ln.t, 3.6, { kind: 'pais', sub: ln.es });
+      game.visits++;
+      punish(n.rel.name + ' (' + n.rel.country + ')', ln.t, ln.es || '', 'pais');
     } else if (n.kind === 'kid') {
-      n.cool = 6; p.stun = 0.6; Music.sfx('bump');
-      setDialog(n.rel.name, pick(DATA.KIDS), 1.6, { kind: 'kid' });
-      n.mode = 'wander'; n.goal = null;
+      n.cool = 8; n.mode = 'wander'; n.goal = null;
+      punish(n.rel.name, pick(DATA.KIDS), '', 'kid');
     } else {
       n.cool = 11; n.mode = 'wander'; n.modeT = 6;
-      p.hug = 1.5; game.timeLeft += 5; game.hugs++; Music.sfx('gift');
+      // abrazo = escudo de cariño: no te frena y nadie te para mientras dura
+      p.hug = 2.5; game.timeLeft += 5; game.hugs++; Music.sfx('gift');
       hearts(p.x + 2, p.y, 18); hearts(n.x + 2, n.y - 2, 8);
       const lines = n.kind === 'mami' ? DATA.MAMI : DATA.PAPI;
       setDialog(n.rel.name, pick(lines) + ' +5s', 3.2, { kind: 'love', icon: 'arepa' });
@@ -540,13 +587,15 @@
     if (game.state === 'intro') { game.introT += dt; if (game.introT > 3.6) game.state = 'play'; return; }
     if (game.state === 'levelDone') { game.doneT += dt; if (game.doneT > 2.8) nextLevel(); return; }
     if (game.state !== 'play') return;
+    if (game.modal) return; // juego congelado hasta que den OK
     game.timeLeft -= dt; game.totalTime += dt;
     if (game.timeLeft <= 0) { game.timeLeft = 0; game.state = 'gameover'; Music.sfx('lose'); return; }
     const p = game.player;
     if (game.msg) { game.msg.t -= dt; if (game.msg.t <= 0) game.msg = null; }
     if (p.stun > 0) p.stun -= dt;
     if (p.hug > 0) { p.hug -= dt; if (rnd() < dt * 6) hearts(p.x + 2, p.y, 1); }
-    const frozen = p.stun > 0 || p.hug > 0;
+    if (p.grace > 0) p.grace -= dt;
+    const frozen = p.stun > 0; // el abrazo NO congela: sigues caminando con los corazones
     let dx = 0, dy = 0;
     if (!frozen) { if (keys.left) dx -= 1; if (keys.right) dx += 1; if (keys.up) dy -= 1; if (keys.down) dy += 1; }
     const sp = 72 * dt;
@@ -594,7 +643,7 @@
         n.heartT = (n.heartT || 0) - dt;
         if (n.heartT <= 0) { n.heartT = 0.45 + rnd() * 0.4; hearts(n.x + 3, n.y - 4, 1); }
       }
-      if (n.cool <= 0 && p.stun <= 0 && p.hug <= 0 && Math.abs(p.x - n.x) < 11 && Math.abs(p.y - n.y) < 11) meet(n);
+      if (n.cool <= 0 && p.stun <= 0 && p.hug <= 0 && p.grace <= 0 && Math.abs(p.x - n.x) < 11 && Math.abs(p.y - n.y) < 11) meet(n);
     }
   }
   function nextLevel() {
@@ -867,6 +916,11 @@
   const KEYMAP = { ArrowLeft: 'left', a: 'left', A: 'left', ArrowRight: 'right', d: 'right', D: 'right', ArrowUp: 'up', w: 'up', W: 'up', ArrowDown: 'down', s: 'down', S: 'down' };
   function inGame() { return !$('#panel-game').classList.contains('hidden'); }
   window.addEventListener('keydown', (e) => {
+    if (game.modal) { // mensaje emergente abierto: solo se cierra con OK / Enter / Espacio / Esc
+      if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') { e.preventDefault(); closePopup(); }
+      else if (KEYMAP[e.key]) e.preventDefault();
+      return;
+    }
     if (e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
     const k = KEYMAP[e.key];
     if (k && inGame()) { keys[k] = true; e.preventDefault(); }
@@ -1028,6 +1082,7 @@
   }
   $('#muteBtn').textContent = Music.isMuted() ? '♪ OFF' : '♪ ON';
   $('#muteBtn').addEventListener('click', toggleMute);
+  $('#ppOk').addEventListener('click', closePopup);
 
   // Registro
   const form = $('#regForm');
