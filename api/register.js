@@ -30,6 +30,7 @@ export default async function handler(req, res) {
   const name = clean(body.name, 60);
   const email = clean(body.email, 120).toLowerCase();
   const country = clean(body.country, 60);
+  const countryCode = clean(body.countryCode, 2).toUpperCase().replace(/[^A-Z]/g, '');
   const consent = body.consent === true;
 
   if (!name || !EMAIL_RE.test(email) || !country) {
@@ -50,6 +51,7 @@ export default async function handler(req, res) {
       name,
       email,
       country,
+      countryCode,
       consent: true,
       consentText: clean(body.consentText, 400),
       character: clean(body.character, 30),

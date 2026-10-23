@@ -132,8 +132,14 @@
   }
   const MAMI_REL = { name: 'Mami', frames: buildHuman({ hair: 'curly', skirt: true, pal: { s: '#c88a5a', h: '#2b1a10', t: '#ff7ab6', p: '#e8283a' } }) };
   const PAPI_REL = { name: 'Papi', frames: buildHuman({ hair: 'short', extras: ['mustache', 'glasses'], pal: { s: '#c88a5a', h: '#3a2a1a', t: '#f4efe1', p: '#3a2a1a', g: '#1a1a1a' } }) };
-  function makeVisitor(country) {
-    const v = DATA.COUNTRY[country] || DATA.COUNTRY['Otro'];
+  function makeVisitor(country, code) {
+    let v = DATA.COUNTRY[country];
+    if (!v) { // cualquier país del mundo: saludo en su idioma principal
+      const L = (window.HALLACA_LANGS || {})[(window.HALLACA_COUNTRY_LANG || {})[code]];
+      const where = country && country !== 'Otro' ? country : 'muy lejos';
+      if (L && L.es) v = { name: L.name, lines: [{ t: L.t, es: L.es }, { t: L.t + ' ¡Vine desde ' + where + ' solo por una hallaca!' }] };
+      else v = { name: 'Tía Viajera', lines: [{ t: '¡Feliz Navidad desde ' + where + '! La hallaca une al mundo.' }, { t: '¡Crucé medio planeta desde ' + where + ' solo por una hallaca!' }] };
+    }
     if (!v) return null;
     const rel = makeRelative(v.name);
     rel.lines = v.lines; rel.country = country || 'Otro';
@@ -1011,12 +1017,35 @@
     try { const r = await postLead(pending); if (r.status === 200) store.set('pendingLead', null); } catch (e) { /* luego */ }
   }
 
+  // Selector con TODOS los países: nombres en español del propio navegador; si no hay Intl, queda la lista fija del HTML
+  (function buildCountries() {
+    const R = window.HALLACA_REGIONS, sel = form.querySelector('select[name="country"]');
+    if (!R || !sel || typeof Intl === 'undefined' || !Intl.DisplayNames) return;
+    let dn; try { dn = new Intl.DisplayNames(['es'], { type: 'region' }); } catch (e) { return; }
+    const nameOf = (c) => { try { const n = dn.of(c); return n && n !== c ? n : null; } catch (e) { return null; } };
+    const opt = (c, n) => { const o = document.createElement('option'); o.value = n; o.textContent = n; o.dataset.code = c; return o; };
+    const top = R.top.map((c) => [c, nameOf(c)]).filter((x) => x[1]);
+    const rest = R.all.filter((c) => R.top.indexOf(c) < 0).map((c) => [c, nameOf(c)]).filter((x) => x[1])
+      .sort((a, b) => a[1].localeCompare(b[1], 'es'));
+    if (rest.length < 150) return; // algo raro con Intl: mejor dejar la lista fija
+    const keep = sel.value;
+    sel.innerHTML = '';
+    const ph = document.createElement('option'); ph.value = ''; ph.textContent = '— Escoge —'; sel.appendChild(ph);
+    const g1 = document.createElement('optgroup'); g1.label = 'Los más comunes'; top.forEach(([c, n]) => g1.appendChild(opt(c, n)));
+    const g2 = document.createElement('optgroup'); g2.label = 'Todos los países'; rest.forEach(([c, n]) => g2.appendChild(opt(c, n)));
+    sel.appendChild(g1); sel.appendChild(g2);
+    const other = document.createElement('option'); other.value = 'Otro'; other.textContent = 'Otro'; sel.appendChild(other);
+    if (keep) sel.value = keep;
+  })();
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const fd = new FormData(form);
     const name = String(fd.get('name') || '').trim();
     const email = String(fd.get('email') || '').trim();
     const country = String(fd.get('country') || '');
+    const countrySel = form.querySelector('select[name="country"]');
+    const countryCode = (countrySel.selectedOptions[0] && countrySel.selectedOptions[0].dataset.code) || '';
     const msg = $('#regMsg'); msg.classList.remove('err');
     if (!name) { msg.textContent = 'Falta tu nombre.'; msg.classList.add('err'); return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { msg.textContent = 'Ese correo no se ve bien.'; msg.classList.add('err'); return; }
@@ -1025,7 +1054,7 @@
 
     Music.start('title');
     const dv = deviceInfo();
-    const payload = { name, email, country, device: dv.device, os: dv.os, consent: true, consentText: $('#consentText').textContent, website: fd.get('website') || '', elapsedMs: Date.now() - formStart };
+    const payload = { name, email, country, countryCode, device: dv.device, os: dv.os, consent: true, consentText: $('#consentText').textContent, website: fd.get('website') || '', elapsedMs: Date.now() - formStart };
     const btn = $('#regBtn'); btn.disabled = true; msg.textContent = 'Guardando...';
     try {
       const r = await postLead(payload);
@@ -1034,7 +1063,7 @@
     } catch (err) {
       store.set('pendingLead', payload);
     }
-    store.set('registered', { name, country, at: Date.now() });
+    store.set('registered', { name, country, countryCode, at: Date.now() });
     btn.disabled = false; msg.textContent = '';
     goSetup();
   });
@@ -1054,8 +1083,9 @@
       b.addEventListener('click', () => { selected = h.id; Music.sfx('select'); Music.start('title'); [...wrapC.children].forEach((x) => x.setAttribute('aria-checked', 'false')); b.setAttribute('aria-checked', 'true'); });
       wrapC.appendChild(b);
     });
-    const ctry = (store.get('registered', {}) || {}).country;
-    const vis = DATA.COUNTRY[ctry] || DATA.COUNTRY['Otro'];
+    const rinfo = store.get('registered', {}) || {};
+    const ctry = rinfo.country;
+    const vis = makeVisitor(ctry, rinfo.countryCode);
     $('#visitor').textContent = vis ? 'Este año viene de visita ' + vis.name + (ctry && ctry !== 'Otro' ? ' desde ' + ctry : '') + '. Y mami y papi te están esperando con arepitas.' : '';
     const saved = store.get('tios', null);
     fillTios(saved && saved.length === 6 ? saved : randomTios());
@@ -1076,7 +1106,8 @@
     game.hero = heroDef; game.heroName = nm;
     game.relatives = shuffle(tios).map(makeRelative);
     game.score = 0; game.chismes = 0; game.hugs = 0; game.visits = 0; game.totalTime = 0; game.items = []; game.paused = false;
-    game.visitor = makeVisitor((store.get('registered', {}) || {}).country);
+    const regInfo = store.get('registered', {}) || {};
+    game.visitor = makeVisitor(regInfo.country, regInfo.countryCode);
     $('#kitchen').classList.add('hidden');
     show('game');
     Music.start('game'); Music.setMode('game');

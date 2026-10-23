@@ -50,7 +50,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true, total: leads.length, leads });
   }
 
-  const cols = ['createdAt', 'name', 'email', 'country', 'device', 'os', 'lang', 'consent', 'source'];
+  const cols = ['createdAt', 'name', 'email', 'country', 'countryCode', 'device', 'os', 'lang', 'consent', 'source'];
   const csv = [cols.join(',')]
     .concat(leads.map((l) => cols.map((c) => csvCell(l[c])).join(',')))
     .join('\n');
