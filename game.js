@@ -442,7 +442,7 @@
       tio.turn -= dt; if (tio.cool > 0) tio.cool -= dt;
       if (tio.turn <= 0) {
         tio.turn = 0.8 + rnd() * 2.2;
-        const d = pick([[1, 0], [-1, 0], [0, 1], [0, -1], [0, 0], [1, 0], [-1, 0]]);
+        const d = pick([[1, 0], [-1, 0], [0, 1], [0, -1], [0, 0], [1, 0], [-1, 0]]).slice();
         // a veces se acercan al jugador (chismosos al fin)
         if (rnd() < 0.35) { const ax = p.x - tio.x, ay = p.y - tio.y; if (Math.abs(ax) > Math.abs(ay)) { d[0] = Math.sign(ax); d[1] = 0; } else { d[0] = 0; d[1] = Math.sign(ay); } }
         tio.dx = d[0]; tio.dy = d[1];
