@@ -287,3 +287,11 @@ button{touch-action:manipulation}
 @media (prefers-reduced-motion: reduce){
   *{animation:none !important; scroll-behavior:auto}
 }
+
+/* Cómo se juega */
+.howto{list-style:none; margin:6px auto 10px; padding:0; max-width:520px; text-align:left; display:grid; gap:10px}
+.howto li{display:flex; gap:12px; align-items:center; background:var(--night2); outline:2px solid #3a43a0; padding:8px 12px; line-height:1.15; font-size:24px}
+.howto .ht-ico{width:44px; height:44px; flex:0 0 44px; image-rendering:pixelated}
+.howto b{color:var(--cream)} .howto .c-tio{color:#ffcc00} .howto .c-kid{color:#9be37a} .howto .c-love{color:#ff9ec4}
+#howtoBtn{font-size:16px; padding:18px 22px}
+@media (max-width:420px){ .howto{gap:8px} .howto li{padding:6px 10px; gap:10px; font-size:21px} .howto .ht-ico{width:38px; height:38px; flex-basis:38px} #panel-howto .small{font-size:21px} }

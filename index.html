@@ -98,6 +98,25 @@ window.HALLACA_ASSETS = { version: '209ca05', bases: [
           </form>
         </div>
 
+        <!-- 1b. Cómo se juega (sale apenas se registran) -->
+        <div class="panel hidden" id="panel-howto">
+          <h2>INSTRUCCIONES</h2>
+          <ul class="howto">
+            <li><canvas class="ht-ico" data-ico="hero" width="18" height="18"></canvas>
+              <span><b>Eres tú</b>, el de la flecha amarilla. Recorre el mercado como en Pac-Man y recoge los ingredientes.</span></li>
+            <li><canvas class="ht-ico" data-ico="tio" width="18" height="18"></canvas>
+              <span><b class="c-tio">Tíos y visitantes:</b> <b>−10&nbsp;s</b> y se te cae un ingrediente.</span></li>
+            <li><canvas class="ht-ico" data-ico="kid" width="18" height="18"></canvas>
+              <span><b class="c-kid">Primos:</b> te tumban un ingrediente.</span></li>
+            <li><canvas class="ht-ico" data-ico="mami" width="18" height="18"></canvas>
+              <span><b class="c-love">Papá y mamá:</b> abrazo y <b>+3&nbsp;s</b>.</span></li>
+            <li><canvas class="ht-ico" data-ico="item" width="18" height="18"></canvas>
+              <span><b>3 niveles de 60&nbsp;s</b>. Al final, ¡a armar la hallaca!</span></li>
+          </ul>
+          <p class="small">Muévete con las flechas o arrastrando el dedo sobre el juego.</p>
+          <button class="btn" type="button" id="howtoBtn">▶ ¡ENTENDIDO!</button>
+        </div>
+
         <!-- 2. Selección -->
         <div class="panel hidden" id="panel-setup">
           <h2>ESCOGE TU PERSONAJE</h2>
@@ -113,6 +132,7 @@ window.HALLACA_ASSETS = { version: '209ca05', bases: [
             <button class="btn ghost" type="button" id="randTios">🎲 Tíos aleatorios</button>
             <button class="btn" type="button" id="startBtn">▶ JUGAR</button>
           </div>
+          <p class="tiny"><a href="#" id="howtoLink">¿Cómo se juega?</a></p>
         </div>
 
         <!-- 3. Juego -->

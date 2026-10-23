@@ -460,7 +460,7 @@
     mk('papi', PAPI_REL, freeCell(3), 24);
     game.timeLeft = L.time;
     game.msg = null; game.toast = null;
-    game.state = 'intro'; game.introT = 0;
+    game.state = 'intro'; game.introT = 0; game.playT = 0;
     Music.setMode('game');
     if (typeof setPad === 'function') { setPad(true); fit(); }
   }
@@ -591,6 +591,7 @@
     if (game.state === 'levelDone') { game.doneT += dt; if (game.doneT > 2.8) nextLevel(); return; }
     if (game.state !== 'play') return;
     if (game.modal) return; // juego congelado hasta que den OK
+    game.playT = (game.playT || 0) + dt;
     game.timeLeft -= dt; game.totalTime += dt;
     if (game.timeLeft <= 0) { game.timeLeft = 0; game.state = 'gameover'; Music.sfx('lose'); return; }
     const p = game.player;
@@ -666,6 +667,47 @@
     ctx.fillRect(x, y, 2, 1); ctx.fillRect(x + 3, y, 2, 1);
     ctx.fillRect(x, y + 1, 5, 1); ctx.fillRect(x + 1, y + 2, 3, 1); ctx.fillRect(x + 2, y + 3, 1, 1);
   }
+  // ---------- Marcador del héroe: aura en los pies + flecha "TÚ" + anillos al empezar ----------
+  function heroAura(p) {
+    const cx = Math.round(p.x) + 8, cy = Math.round(p.y) + 15;
+    const pulse = (Math.sin(game.t * 6) + 1) / 2;
+    ctx.save();
+    ctx.globalAlpha = 0.28 + pulse * 0.22; ctx.fillStyle = '#ffcc00';
+    ctx.beginPath(); ctx.ellipse(cx, cy, 10 + pulse * 2, 4 + pulse, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 0.9; ctx.strokeStyle = '#ffcc00'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.ellipse(cx, cy, 11 + pulse * 2, 5 + pulse, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
+  function heroMarker(p) {
+    if (game.state !== 'play' && game.state !== 'intro') return;
+    const cx = Math.round(p.x) + 8;
+    // anillos que se cierran sobre el héroe los primeros segundos de cada nivel
+    const st = game.playT || 0;
+    if (game.state === 'play' && st < 2.4) {
+      ctx.save(); ctx.strokeStyle = '#ffcc00'; ctx.lineWidth = 2;
+      for (let k = 0; k < 2; k++) {
+        const f = ((st * 1.25) + k * 0.5) % 1, r = 40 * (1 - f) + 9;
+        ctx.globalAlpha = Math.min(1, f * 1.6) * (1 - st / 2.4);
+        ctx.beginPath(); ctx.arc(cx, Math.round(p.y) + 8, r, 0, Math.PI * 2); ctx.stroke();
+      }
+      ctx.restore();
+    }
+    const bob = Math.round(Math.abs(Math.sin(game.t * 5)) * 3);
+    let tipY = Math.round(p.y) - 2 - bob, up = false;
+    if (tipY - 14 < TOP + 1) { up = true; tipY = Math.round(p.y) + 19 + bob; } // pegado al techo: la flecha va abajo
+    const tri = (y, dir, color, grow) => {
+      ctx.fillStyle = color;
+      for (let r = 0; r < 4 + grow; r++) { const w = 1 + r * 2; ctx.fillRect(cx - r, y - dir * r, w, 1); }
+    };
+    // flecha con borde oscuro (se lee sobre cualquier piso)
+    tri(tipY + (up ? -1 : 1), up ? -1 : 1, '#120a1e', 1);
+    tri(tipY, up ? -1 : 1, '#ffcc00', 0);
+    ctx.font = FONT(5);
+    const lab = 'TÚ', lw = Math.ceil(ctx.measureText(lab).width), lh = LH(5) - 1;
+    const ly = up ? tipY + 5 : tipY - 4 - lh;
+    ctx.fillStyle = '#120a1e'; ctx.fillRect(cx - Math.ceil(lw / 2) - 2, ly - 1, lw + 4, lh + 1);
+    text(lab, cx, ly, { size: 5, align: 'center', color: '#ffcc00', shadow: false });
+  }
   function shadow(x, y) { ctx.fillStyle = '#00000040'; ctx.fillRect(Math.round(x) + 3, Math.round(y) + 14, 10, 3); }
 
   function render() {
@@ -718,6 +760,7 @@
     const p = game.player;
     ents.push({ y: p.y + 6, draw: () => {
       shadow(p.x, p.y);
+      heroAura(p);
       const blink = p.stun > 0 && Math.floor(game.t * 12) % 2 === 0;
       if (!blink) drawSprite(game.hero.frames[Math.floor(p.anim * 8) % 2], p.x, p.y, p.dir < 0);
       if (p.stun > 0) { // estrellitas de mareo
@@ -725,6 +768,7 @@
       }
     } });
     ents.sort((a, b) => a.y - b.y).forEach((e) => e.draw());
+    heroMarker(p); // siempre encima de todos: nadie se pierde buscando a su personaje
     for (const pt of game.particles) { ctx.globalAlpha = Math.min(1, pt.t * 1.5); drawHeart(Math.round(pt.x), Math.round(pt.y), '#ff4f7a'); ctx.globalAlpha = 1; }
 
     if (game.flash > 0) { ctx.fillStyle = '#ffffff55'; ctx.fillRect(0, TOP, W, H - TOP); }
@@ -1085,7 +1129,7 @@
   }
 
   // ---------- Pantallas DOM ----------
-  const PANELS = ['register', 'setup', 'game', 'end'];
+  const PANELS = ['register', 'howto', 'setup', 'game', 'end'];
   const cabinet = $('.cabinet');
   function show(name) {
     PANELS.forEach((p) => $('#panel-' + p).classList.toggle('hidden', p !== name));
@@ -1266,8 +1310,25 @@
     }
     store.set('registered', { name, country, countryCode, at: Date.now() });
     btn.disabled = false; msg.textContent = '';
-    goSetup();
+    goHowto();
   });
+
+  // Cómo se juega: justo después del registro (y desde el link en la selección)
+  function goHowto() {
+    const hero = HEROES.find((h) => h.id === store.get('hero', 'valentina')) || HEROES[0];
+    const icos = { hero: hero.frames[0], tio: makeRelative('Tío').frames[0], kid: makeKid().frames[0], mami: MAMI_REL.frames[0], item: ICONS[Object.keys(ICONS)[0]].img };
+    document.querySelectorAll('#panel-howto .ht-ico').forEach((c) => {
+      const im = icos[c.dataset.ico]; if (!im) return;
+      c.width = im.width; c.height = im.height; // el canvas mide lo mismo que el sprite: se ve grande y nítido
+      c.getContext('2d').drawImage(im, 0, 0);
+    });
+    show('howto');
+    const top = $('#cabinet') || $('.cabinet');
+    if (top && top.getBoundingClientRect().top < 0) top.scrollIntoView({ block: 'start' });
+    $('#howtoBtn').focus({ preventScroll: true });
+  }
+  $('#howtoBtn').addEventListener('click', () => { Music.sfx('select'); store.set('seenHowto', 1); goSetup(); });
+  $('#howtoLink').addEventListener('click', (e) => { e.preventDefault(); Music.sfx('select'); goHowto(); });
 
   // Selección de personaje y tíos
   let selected = store.get('hero', 'valentina');
@@ -1361,5 +1422,5 @@
   })();
 
   // Arranque
-  if (store.get('registered', null)) { flushPendingLead(); goSetup(); } else show('register');
+  if (store.get('registered', null)) { flushPendingLead(); if (store.get('seenHowto', 0)) goSetup(); else goHowto(); } else show('register');
 })();
