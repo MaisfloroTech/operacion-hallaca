@@ -3,7 +3,7 @@
 //   POST → guarda el MEJOR puntaje de cada jugador (id aleatorio del navegador, nunca el correo).
 // Todo vive en un solo archivo privado de Vercel Blob, escrito con ifMatch (ETag) para que
 // dos partidas que terminan al mismo tiempo no se pisen.
-import { put, get, BlobPreconditionFailedError } from '@vercel/blob';
+import { put, get, head, BlobPreconditionFailedError, BlobNotFoundError } from '@vercel/blob';
 import { createHash } from 'node:crypto';
 
 const BOARD = 'scoreboard/board.json';
@@ -17,12 +17,21 @@ const clean = (v, max) => String(v ?? '').replace(/[\u0000-\u001f<>]/g, '').trim
 const short = (id) => createHash('sha256').update(id).digest('hex').slice(0, 10); // identificador público, no reversible
 
 async function readBoard() {
+  // La huella (etag) sale de head(), que es la oficial del archivo. La del GET puede venir
+  // cambiada por la compresión del CDN (W/"…") y hacía fallar todos los guardados con ifMatch.
+  // Orden head → get: si alguien escribe entre medio, el put falla y se reintenta (nunca pisa datos).
+  let meta;
+  try { meta = await head(BOARD); } catch (err) {
+    // solo "no existe" significa tablero nuevo; cualquier otro error NO puede terminar en un tablero vacío
+    if (err instanceof BlobNotFoundError || /not.?found/i.test(err?.message || '')) return { board: { v: 1, entries: {} }, etag: null };
+    throw err;
+  }
   const r = await get(BOARD, { access: 'private', useCache: false }).catch(() => null);
-  if (!r || !r.stream) return { board: { v: 1, entries: {} }, etag: null };
   let board;
-  try { board = JSON.parse(await new Response(r.stream).text()); } catch { board = { v: 1, entries: {} }; }
+  try { board = r && r.stream ? JSON.parse(await new Response(r.stream).text()) : null; } catch { board = null; }
+  if (!board) throw new Error('board_unreadable'); // existe pero no se pudo leer: mejor fallar que borrarlo
   if (!board.entries) board.entries = {};
-  return { board, etag: r.blob && r.blob.etag };
+  return { board, etag: meta.etag };
 }
 
 function ranked(board) {
@@ -113,6 +122,7 @@ export default async function handler(req, res) {
       const rank = list.findIndex((e) => e.id === pid) + 1;
       return res.status(200).json({ ok: true, improved, rank, total: list.length, best: board.entries[pid].s, k: short(pid) });
     }
+    console.error('scores_post_busy', 'ifMatch falló 6 veces');
     return res.status(503).json({ ok: false, error: 'busy' });
   } catch (err) {
     console.error('scores_post_failed', err?.message);

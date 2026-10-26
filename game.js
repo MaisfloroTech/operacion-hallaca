@@ -955,29 +955,41 @@
   const flagOf = (cc) => (/^[A-Z]{2}$/.test(cc || '') ? String.fromCodePoint(...[...cc].map((ch) => 127397 + ch.charCodeAt(0))) : '🌎');
   const mmss = (s) => Math.floor(s / 60) + ':' + String(Math.round(s % 60)).padStart(2, '0');
 
+  // Guarda en la cola el MEJOR puntaje pendiente (nunca lo reemplaza uno más bajo)
+  function queueScore(payload) {
+    const prev = store.get('pendingScore', null);
+    if (!prev || payload.score > prev.score || (payload.score === prev.score && payload.seconds < prev.seconds)) store.set('pendingScore', payload);
+  }
   async function submitScore(payload, fromQueue) {
     const el = $('#endRank');
     if (!fromQueue && el) el.textContent = 'Guardando tu puntaje en el scoreboard…';
-    try {
-      const r = await fetch('/api/scores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-      const j = await r.json().catch(() => ({}));
-      if (r.ok && j.ok) {
-        store.set('pendingScore', null);
-        if (!fromQueue && el) {
-          el.innerHTML = '';
-          const b = document.createElement('b'); b.textContent = '#' + j.rank;
-          el.append('Quedaste en el puesto ', b, ' de ' + j.total + ' en el scoreboard. ' +
-            (j.improved ? '¡Nuevo récord personal!' : 'Tu mejor puntaje sigue siendo ' + j.best + '.'));
+    // si hay uno pendiente más alto de antes, se manda ese (el servidor igual se queda con el mejor)
+    const pend = store.get('pendingScore', null);
+    if (!fromQueue && pend && pend.pid === payload.pid && pend.score > payload.score) payload = Object.assign({}, payload, { score: pend.score, seconds: pend.seconds });
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const r = await fetch('/api/scores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const j = await r.json().catch(() => ({}));
+        if (r.ok && j.ok) {
+          store.set('pendingScore', null);
+          if (!fromQueue && el) {
+            el.innerHTML = '';
+            const b = document.createElement('b'); b.textContent = '#' + j.rank;
+            el.append('Quedaste en el puesto ', b, ' de ' + j.total + ' en el scoreboard. ' +
+              (j.improved ? '¡Nuevo récord personal!' : 'Tu mejor puntaje sigue siendo ' + j.best + '.'));
+          }
+          loadBoard(true);
+          return;
         }
-        loadBoard(true);
-        return;
+        if (r.status === 429 && attempt < 2) { await new Promise((ok) => setTimeout(ok, 16000)); continue; } // jugaste muy rápido: espera y reintenta
+        if (r.status === 400) { store.set('pendingScore', null); if (!fromQueue && el) el.textContent = 'Puedes ver el scoreboard abajo.'; return; }
+        throw new Error('http ' + r.status);
+      } catch (e) {
+        if (attempt < 2) { await new Promise((ok) => setTimeout(ok, 1500 * (attempt + 1))); continue; }
       }
-      if (r.status === 429 || r.status === 400) { store.set('pendingScore', null); if (!fromQueue && el) el.textContent = 'Puedes ver el scoreboard abajo.'; return; }
-      throw new Error('http ' + r.status);
-    } catch (e) {
-      store.set('pendingScore', payload); // se reintenta en la próxima visita
-      if (!fromQueue && el) el.textContent = 'No pude guardar tu puntaje ahora; lo intento de nuevo la próxima vez que entres.';
     }
+    queueScore(payload); // se reintenta en la próxima visita
+    if (!fromQueue && el) el.textContent = 'No pude guardar tu puntaje ahora; lo intento de nuevo la próxima vez que entres.';
   }
 
   let boardData = null, boardBusy = false;
