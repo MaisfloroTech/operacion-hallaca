@@ -19,7 +19,7 @@ async function readJson(pathname) {
   try { return JSON.parse(await new Response(r.stream).text()); } catch { return null; }
 }
 
-async function leads() {
+async function leads(since) {
   const out = [];
   let cursor;
   do {
@@ -37,16 +37,18 @@ async function leads() {
       country: l.country || '', countryCode: l.countryCode || '', device: l.device || '',
       os: l.os || '', lang: l.lang || '',
     }))
+    .filter((l) => !since || Date.parse(l.createdAt) >= since)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
-async function players() {
+async function players(since) {
   const board = (await readJson('scoreboard/board.json')) || { entries: {} };
   return Object.values(board.entries || {})
     .map((e) => ({
       name: e.n || '', country: e.c || '', countryCode: e.cc || '', score: e.s || 0,
       seconds: e.t || 0, games: e.g || 1, bestAt: e.at || '', lastPlayed: e.last || e.at || '',
     }))
+    .filter((p) => !since || Date.parse(p.lastPlayed) >= since)
     .sort((a, b) => b.score - a.score || a.seconds - b.seconds);
 }
 
@@ -57,8 +59,11 @@ export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ ok: false, error: 'method_not_allowed' });
   try {
     const view = String((req.query && req.query.view) || 'leads');
-    if (view === 'players') return res.status(200).json({ ok: true, rows: await players() });
-    if (view === 'leads') return res.status(200).json({ ok: true, rows: await leads() });
+    // ?since=2026-10-20 o una fecha ISO completa: solo lo que pasó desde ahí (vacío = todo)
+    const raw = String((req.query && req.query.since) || '');
+    const since = raw && !Number.isNaN(Date.parse(raw)) ? Date.parse(raw) : 0;
+    if (view === 'players') return res.status(200).json({ ok: true, since: since ? new Date(since).toISOString() : null, rows: await players(since) });
+    if (view === 'leads') return res.status(200).json({ ok: true, since: since ? new Date(since).toISOString() : null, rows: await leads(since) });
     return res.status(400).json({ ok: false, error: 'bad_view' });
   } catch (err) {
     console.error('admin_failed', err?.message);
